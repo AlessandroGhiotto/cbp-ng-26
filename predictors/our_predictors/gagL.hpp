@@ -107,19 +107,10 @@ struct gagL : predictor
     {
         // UPDATE BHR
         val<BHR_B> old_bhr = bhr;
-        // arr<val<1>, LI> valid_mask = [&](u64 i) {
-        //     return i < num_branches;
-        // };
-        // val<BHR_B> new_history = branch_taken.concat().reverse() & valid_mask.fo1().concat();
-        // bhr = (bhr << num_branches) + new_history.fo1();
-
-        // chronologically shift branches into BHR from oldest (0) to newest (num_branches - 1)
-        val<BHR_B> shifted_bhr = bhr;
-        for (u64 i = 0; i < num_branches; i++)
-        {
-            shifted_bhr = (shifted_bhr << 1) + val<1> { branch_taken[i] };
-        }
-        bhr = shifted_bhr;
+        // branches are stored in reverse order
+        // and we need to take only the last "num_branches" results
+        val<LI> new_history = branch_taken.concat().reverse() >> (LI - num_branches);
+        bhr = (bhr << num_branches) + new_history.fo1();
 
         // In order to perform updates for the current cacheline, we want a
         // mask with one bit corresponding to one instruction offset in the
