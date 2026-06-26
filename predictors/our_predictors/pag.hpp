@@ -3,28 +3,33 @@
 
 using namespace hcm;
 
-template <u64 BHR_B = 4, u64 PC_B = 4, u64 CTR_B = 2>
-struct gap : predictor
+template <u64 BHR_B = 8, u64 PC_B = 4, u64 CTR_B = 2>
+struct pag : predictor
 {
+
     /*
      * Predict one instruction per cycle using an SRAM array of simple CTR_B-bit (2-bit)
-     * counters indexed by the PC_B lsb of the PC concatenated with a BHR (BHR_B bits).
+     * counters indexed by a BHR, which is chosen across 2^PC_B BHRs,
+     * which are indexed with the PB_B lsb of the PC.
      */
 
     // we have 2^BHR_B counters of val<CTR_B>
-    static constexpr u64 B = BHR_B + PC_B;
-    static constexpr u64 PHT_ROWS = 1 << B;
-    ram<val<CTR_B>, PHT_ROWS> counters;
+    static constexpr u64 PHT_ROWS = 1 << BHR_B;
+    static constexpr u64 BHR_ROWS = 1 << PC_B;
+    ram<val<CTR_B>, PHT_ROWS> counters; // PATTERN HISTORY TABLE
+    ram<val<BHR_B>, BHR_ROWS> bhrs;     // GLOBAL HISTORY TABLE
     reg<CTR_B> counter;
     reg<BHR_B> bhr;
 
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
-        val<B> index = concat(val<PC_B> { inst_pc }, bhr);
+        // get BHR corresponding to the PB_B lsb of the PC
+        val<PC_B> index = val<PC_B> { inst_pc };
+        bhr = bhrs.read(index.fo1());
 
         // Index into the array of counters, saving the counter value to
         // a register
-        counter = counters.read(index.fo1());
+        counter = counters.read(bhr);
 
         // Use the top (LEFTMOST) bit of the counter to predict the branch's direction
         return counter >> (counter.size - 1);
@@ -49,28 +54,30 @@ struct gap : predictor
         // Declare fanouts for variables used multiple times in this function
         // branch_pc.fanout(hard<1> {});
         bhr.fanout(hard<3> {});
-        // update the BHR
-        val<BHR_B> old_bhr = bhr;
-        bhr = (bhr << 1) + taken;
+        counter.fanout(hard<2> {});
 
-        // Calculate the new saturating counter value based on its previous
-        // value and the executed direction of the branch
+        // get newcounter and see if we need to update
         val<CTR_B> newcounter = update_counter(counter, taken);
+        val<1> performing_update_counter = val<1> { newcounter != counter };
 
-        // Determine whether to perform an update - when the updated counter is
-        // different than the read counter
-        val<1> performing_update = val<1> { newcounter != counter };
+        // same for bhr
+        // (we could assume that it always change and don't check if it changes or not
+        // but this is more efficient if the bhr is very small for example)
+        val<BHR_B> newbhr = (bhr << 1) + taken;
+        val<1> performing_update_bhr = val<1> { newbhr != bhr };
 
-        // If we are doing an update, inform the simulator we need an extra
-        // cycle to write the array (note this must be called *before* the
-        // array write below, or it will fail at runtime with a message like
-        // "single RAM access per cycle")
-        need_extra_cycle(performing_update);
+        need_extra_cycle(performing_update_counter | performing_update_bhr);
 
-        // Update the SRAM array conditionally
-        execute_if(performing_update, [&]() {
-            val<B> index = concat(val<PC_B> { branch_pc.fo1() }, old_bhr.fo1());
-            counters.write(index.fo1(), newcounter);
+        // Update the SRAM arrays conditionally
+        execute_if(performing_update_counter, [&]() {
+            // we write in counter[bhr] (that is the cell we have selected also for reading)
+            counters.write(bhr, newcounter);
+        });
+
+        execute_if(performing_update_bhr, [&]() {
+            // the bhrs index instead is the k lsb bits of the PC
+            val<PC_B> index = val<PC_B> { branch_pc.fo1() };
+            bhrs.write(index.fo1(), newbhr);
         });
     }
 

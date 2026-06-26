@@ -1,2 +1,7 @@
 #include "gag.hpp"
+#include "gagL.hpp"
 #include "gap.hpp"
+#include "gshare.hpp"
+#include "lxor.hpp"
+#include "pag.hpp"
+#include "pap.hpp"

@@ -5,7 +5,6 @@
 #include "predictors/gshareN.hpp"
 #include "predictors/gshareN_ahead.hpp"
 #include "predictors/hashed_perceptron.hpp"
-#include "predictors/lxor.hpp"
 #include "predictors/never_taken.hpp"
 #include "predictors/our_predictors/our_predictors.hpp"
 #include "predictors/perceptron.hpp"
