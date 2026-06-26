@@ -3,12 +3,15 @@
 
 using namespace hcm;
 
-struct tutorial_02 : predictor {
+struct tutorial_02 : predictor
+{
     /*
      * Predict one instruction per cycle using an SRAM array of simple two-bit
      * counters indexed by a hashed PC.
      */
 
+    // we have 64 val<2>. a val<2> is used as a 2-bit BHT
+    // 64 of them -> indexed with 6 bits adresses
     ram<val<2>, 64> counters;
     reg<2> counter;
 
@@ -17,13 +20,17 @@ struct tutorial_02 : predictor {
         // Hash the instruction PC to a 6-bit index by first chunking it into
         // an array of 6-bit values, then folding that array onto itself using
         // XOR.
-        val<6> index = inst_pc.make_array(val<6>{}).fold_xor();
+        val<6> index = inst_pc.make_array(val<6> {}).fold_xor();
 
         // Index into the array of 2-bit counters, saving the counter value to
         // a register
         counter = counters.read(index);
 
-        // Use the top bit of the counter to predict the branch's direction
+        // Use the top (LEFTMOST) bit of the counter to predict the branch's direction
+        // 00 >> 1 -> 00 (0)
+        // 01 >> 1 -> 00 (0)
+        // 10 >> 1 -> 01 (1)
+        // 11 >> 1 -> 01 (1)
         return counter >> 1;
     };
 
@@ -35,9 +42,17 @@ struct tutorial_02 : predictor {
 
     // Note: common.hpp contains a more generic version of a saturating counter
     // update, this is reproduced here for learning purposes.
-    inline val<2> update_counter(val<2> counter, val<1> taken) {
-        val<2> increased = select(counter == 3, counter, val<2>{counter + 1});
-        val<2> decreased = select(counter == 0, counter, val<2>{counter - 1});
+    inline val<2> update_counter(val<2> counter, val<1> taken)
+    {
+        // Saturating counter means that:
+        // - max_value + 1 |-> max_value
+        //   x = x if x == max_value else x + 1
+        // - min_value - 1 |-> min_value
+        //   x = x if x == min_value else x - 1
+        val<2> increased = select(counter == 3, counter, val<2> { counter + 1 });
+        val<2> decreased = select(counter == 0, counter, val<2> { counter - 1 });
+        // this is HW
+        // we compute both options (increased and decreased) and select with a mux
         return select(taken, increased, decreased);
     }
 
@@ -49,7 +64,7 @@ struct tutorial_02 : predictor {
 
         // Determine whether to perform an update - when the updated counter is
         // different than the read counter
-        val<1> performing_update = val<1>{newcounter != counter};
+        val<1> performing_update = val<1> { newcounter != counter };
 
         // If we are doing an update, inform the simulator we need an extra
         // cycle to write the array (note this must be called *before* the
@@ -58,13 +73,13 @@ struct tutorial_02 : predictor {
         need_extra_cycle(performing_update);
 
         // Update the SRAM array conditionally
-        execute_if(performing_update, [&](){
-            val<6> index = branch_pc.make_array(val<6>{}).fold_xor();
+        execute_if(performing_update, [&]() {
+            val<6> index = branch_pc.make_array(val<6> {}).fold_xor();
             counters.write(index, newcounter);
         });
     }
 
-    void update_cycle([[maybe_unused]] instruction_info &block_end_info)
+    void update_cycle([[maybe_unused]] instruction_info& block_end_info)
     {
     }
 
@@ -72,10 +87,10 @@ struct tutorial_02 : predictor {
     // predictor never calls reuse_prediction()
     val<1> reuse_predict1([[maybe_unused]] val<64> inst_pc)
     {
-        return hard<0>{};
+        return hard<0> {};
     };
     val<1> reuse_predict2([[maybe_unused]] val<64> inst_pc)
     {
-        return hard<0>{};
+        return hard<0> {};
     }
 };

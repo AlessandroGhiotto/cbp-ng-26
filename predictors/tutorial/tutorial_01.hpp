@@ -3,7 +3,8 @@
 
 using namespace hcm;
 
-struct tutorial_01 : predictor {
+struct tutorial_01 : predictor
+{
     /*
      * Remember the PC of the last taken branch. Predict any branches matching
      * that PC as taken.
@@ -38,25 +39,34 @@ struct tutorial_01 : predictor {
         this_branch_taken = taken;
     }
 
-    void update_cycle([[maybe_unused]] instruction_info &block_end_info)
+    void update_cycle([[maybe_unused]] instruction_info& block_end_info)
     {
         // Update the `last_taken` register if this branch was mispredicted. If
         // the mispredicted branch was executed taken, save its PC to
         // `last_taken`. If the mispredicted branch was executed not-taken, set
         // the "last_taken" register to 0 instead.
-        val<64> branch_pc_to_update = select(this_branch_taken, this_branch_pc, val<64>{0});
+        val<64> branch_pc_to_update = select(this_branch_taken, this_branch_pc, val<64> { 0 });
         val<64> updated_last_taken = select(block_end_info.is_mispredict, branch_pc_to_update, last_taken);
         last_taken = updated_last_taken;
+
+        // if there is no misprediction I keep the last last_taken branch addr
+        // (or the branch was taken, which is equal to the last branch,
+        //  or was not taken, so we keep again the old last_taken)
+        // IF THERE IS A MISPREDICTION
+        // 1. or we set to zero the last_taken branch
+        //    (curr_branch = last_taken, but we got a misprediction, so we unset the last_taken)
+        // 2. or we save the addr of the branch, that was != from the last_taken
+        //    but it was actually a taken branch (so we have a new last_taken)
     }
 
     // reuse_predict1 and reuse_predict2 will never be called because this
     // predictor never calls reuse_prediction()
     val<1> reuse_predict1([[maybe_unused]] val<64> inst_pc)
     {
-        return hard<0>{};
+        return hard<0> {};
     };
     val<1> reuse_predict2([[maybe_unused]] val<64> inst_pc)
     {
-        return hard<0>{};
+        return hard<0> {};
     }
 };
