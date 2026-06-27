@@ -3,8 +3,8 @@
 
 using namespace hcm;
 
-template <u64 BHR_B = 8, u64 PC_B = 10, u64 CTR_B = 2, u64 LINE_B = 4>
-struct pagL : predictor
+template <u64 BHR_B = 8, u64 PC_B1 = 10, u64 PC_B2 = 4, u64 CTR_B = 2, u64 LINE_B = 4>
+struct papL : predictor
 {
     /*
      * Predict 2^LINE_B instruction per cycle using an SRAM array of simple CTR_B-bit (2-bit)
@@ -17,13 +17,15 @@ struct pagL : predictor
     // LI = LI (instructions in a line)
     // LI = 2^LINE_B = #instructions predicted per cycle
     static constexpr u64 LI = 1 << LINE_B;
-    static constexpr u64 PHT_ROWS = 1 << BHR_B;
-    static constexpr u64 BHR_ROWS = 1 << PC_B;
+    static constexpr u64 INDEX_B = BHR_B + PC_B2;
+    static constexpr u64 PHT_ROWS = 1 << INDEX_B;
+    static constexpr u64 BHR_ROWS = 1 << PC_B1;
     // each row contains an arry of LI saturating counters
     ram<arr<val<CTR_B>, LI>, PHT_ROWS> counters; // PATTERN HISTORY TABLE
     ram<val<BHR_B>, BHR_ROWS> bhrs;              // GLOBAL HISTORY TABLE
     reg<BHR_B> bhr;
-    reg<PC_B> index_bhrs;
+    reg<PC_B1> index_bhrs;
+    reg<INDEX_B> index_counters;
 
     // values to be used for update time [ONE PER INSTRUCTION]
     arr<reg<CTR_B>, LI> counter;
@@ -44,11 +46,12 @@ struct pagL : predictor
 
         // get BHR corresponding to the PB_B lsb of the PC
         // ! shift by 6 (2 since instructions are 4 bytes, 4 because a block is 16 isntructions)
-        index_bhrs = val<PC_B> { inst_pc >> (2 + LINE_B) };
+        index_bhrs = val<PC_B1> { inst_pc >> (2 + LINE_B) };
         bhr = bhrs.read(index_bhrs);
 
         // get counter (a whole line!)
-        counter = counters.read(bhr);
+        index_counters = concat(val<PC_B2> { inst_pc >> (2 + LINE_B) }, bhr);
+        counter = counters.read(index_counters);
 
         // FOR EACH OFFSET
         for (u64 i = 0; i < LI; i++)
@@ -178,13 +181,13 @@ struct pagL : predictor
         // Finally, write back to the array (only if needed)
         execute_if(performing_update_counter, [&]() {
             // ! HERE THE INDEX IS THE BHR (change it if needed)
-            counters.write(bhr, new_counters);
+            counters.write(index_counters, new_counters.fo1());
         });
 
         execute_if(performing_update_bhr, [&]() {
             // the bhrs index instead is the k lsb bits of the PC
             // index = val<PC_B> { branch_pc };
-            bhrs.write(index_bhrs.fo1(), newbhr.fo1());
+            bhrs.write(index_bhrs, newbhr.fo1());
         });
     }
 };

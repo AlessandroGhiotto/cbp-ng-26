@@ -3,7 +3,7 @@
 
 using namespace hcm;
 
-template <u64 BHR_B = 8, u64 PC_B1 = 4, u64 PC_B2 = 4, u64 CTR_B = 2>
+template <u64 BHR_B = 8, u64 PC_B1 = 10, u64 PC_B2 = 4, u64 CTR_B = 2>
 struct pap : predictor
 {
 
@@ -26,11 +26,15 @@ struct pap : predictor
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
         // get BHR corresponding to the PB_B1 lsb of the PC
-        val<PC_B1> index1 = val<PC_B1> { inst_pc };
+        val<PC_B1> index1 = val<PC_B1> { inst_pc >> 2 };
         bhr = bhrs.read(index1.fo1());
 
         // get counter
-        val<INDEX_B> index2 = concat(val<PC_B2> { inst_pc }, bhr);
+        // ! Here we are taking the lsb of the PC, there is an overlap with index1
+        // we can experiment with the indexing:
+        // - fold_xor()
+        // - inst_pc >> 12 (non overlap with PC_B1)
+        val<INDEX_B> index2 = concat(val<PC_B2> { inst_pc >> 2 }, bhr);
         counter = counters.read(index2.fo1());
 
         // Use the top (LEFTMOST) bit of the counter to predict the branch's direction
@@ -73,13 +77,13 @@ struct pap : predictor
         // Update the SRAM arrays conditionally
         execute_if(performing_update_counter, [&]() {
             // we write in counter[concat(pc, bhr)] (that is the cell we have selected also for reading)
-            val<INDEX_B> index2 = concat(val<PC_B2> { branch_pc }, bhr);
+            val<INDEX_B> index2 = concat(val<PC_B2> { branch_pc >> 2 }, bhr);
             counters.write(index2.fo1(), newcounter);
         });
 
         execute_if(performing_update_bhr, [&]() {
             // the bhrs index instead is the k lsb bits of the PC
-            val<PC_B1> index = val<PC_B1> { branch_pc.fo1() };
+            val<PC_B1> index = val<PC_B1> { branch_pc >> 2 };
             bhrs.write(index.fo1(), newbhr);
         });
     }
