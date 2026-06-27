@@ -10,17 +10,17 @@ struct tutorial_02 : predictor
      * counters indexed by a hashed PC.
      */
 
-    // we have 64 val<2>. a val<2> is used as a 2-bit BHT
-    // 64 of them -> indexed with 6 bits adresses
+    // we have 64 val<2>. a val<2> is used as a 2-bit BHT 
+    // 64 of them -> indexed with 6 bits adresses (each cell)
     ram<val<2>, 64> counters;
-    reg<2> counter;
+    reg<2> counter; // register to hold the counter value read from the SRAM array
 
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
         // Hash the instruction PC to a 6-bit index by first chunking it into
         // an array of 6-bit values, then folding that array onto itself using
-        // XOR.
-        val<6> index = inst_pc.make_array(val<6> {}).fold_xor();
+        // XOR. In order to reduce collisions
+        val<6> index = inst_pc.make_array(val<6> {}).fold_xor(); 
 
         // Index into the array of 2-bit counters, saving the counter value to
         // a register
