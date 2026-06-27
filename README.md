@@ -61,7 +61,7 @@ prediction for the first instruction at each corresponding prediction level,
 but they may additionally call a `reuse_prediction()` callback with a value of
 `1` to specify that the next instruction be predicted by the simulator calling
 `reuse_predict1()` and `reuse_predict2()` instead of `predict1()` and
-`predict2()`. This prediction block will continue (the "reuse_" methods will be
+`predict2()`. This prediction block will continue (the "reuse\_" methods will be
 called) until either you call `reuse_prediction()` with a `0`, a level-2
 misprediction occurs, or a taken branch is encountered, at which point
 `predict1()` and `predict2()` will be called once more.
@@ -79,7 +79,7 @@ CBP-NG
 repository](https://github.com/AmpereComputing/cbp-ng/tree/main/predictors).
 These include bimodal, gshare, perceptron, and TAGE reference predictors.
 
-### Common Utilities 
+### Common Utilities
 
 Different predictors may re-use many of the same components. To help provide
 some basic building blocks, we've gathered several potentially-common

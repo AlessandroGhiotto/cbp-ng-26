@@ -3,7 +3,7 @@
 
 using namespace hcm;
 
-template <u64 BHR_B = 8, u64 PC_B = 4, u64 CTR_B = 2>
+template <u64 BHR_B = 8, u64 PC_B = 10, u64 CTR_B = 2>
 struct pag : predictor
 {
 
@@ -20,12 +20,14 @@ struct pag : predictor
     ram<val<BHR_B>, BHR_ROWS> bhrs;     // GLOBAL HISTORY TABLE
     reg<CTR_B> counter;
     reg<BHR_B> bhr;
+    reg<PC_B> index;
 
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
         // get BHR corresponding to the PB_B lsb of the PC
-        val<PC_B> index = val<PC_B> { inst_pc };
-        bhr = bhrs.read(index.fo1());
+        // ! >>2 since we are counting istructions (last 2 bits are always 00)
+        index = val<PC_B> { inst_pc >> 2 };
+        bhr = bhrs.read(index);
 
         // Index into the array of counters, saving the counter value to
         // a register
@@ -76,8 +78,8 @@ struct pag : predictor
 
         execute_if(performing_update_bhr, [&]() {
             // the bhrs index instead is the k lsb bits of the PC
-            val<PC_B> index = val<PC_B> { branch_pc.fo1() };
-            bhrs.write(index.fo1(), newbhr);
+            // index = val<PC_B> { inst_pc >> 2 };
+            bhrs.write(index, newbhr);
         });
     }
 
