@@ -1,6 +1,9 @@
-/__pycache__/**
-/.vscode/**
-echo "venv/" >> .gitignore
+/__pycache__/
+/.vscode/
+/venv/
+/cbp
+/benchmark_results/
+/comparison_results/
+/profiling/outputs/
 AGENTS.md
-venv/
 **/*.out
