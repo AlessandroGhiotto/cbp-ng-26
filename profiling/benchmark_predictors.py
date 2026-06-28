@@ -36,6 +36,8 @@ DEFAULT_CONFIGS: list[tuple[str, str]] = [
 ]
 
 OUR_CONFIGS: list[tuple[str, str]] = [
+    ("bimode", "bimode<>"),
+    ("bimodeL", "bimodeL<8,12,10,2,4>"),
     ("gag", "gag<>"),
     ("gagL", "gagL<>"),
     ("gap", "gap<>"),
@@ -47,6 +49,7 @@ OUR_CONFIGS: list[tuple[str, str]] = [
     ("pap", "pap<>"),
     ("papL", "papL<>"),
 ]
+
 
 
 def run_command(command: Iterable[str], *, cwd: Path, stdout=None) -> None:

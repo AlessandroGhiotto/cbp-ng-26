@@ -1,3 +1,5 @@
+#include "bimode.hpp"
+#include "bimodeL.hpp"
 #include "gag.hpp"
 #include "gagL.hpp"
 #include "gap.hpp"
@@ -8,3 +10,4 @@
 #include "pagL.hpp"
 #include "pap.hpp"
 #include "papL.hpp"
+

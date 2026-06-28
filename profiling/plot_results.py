@@ -13,6 +13,8 @@ import argparse
 import csv
 import sys
 from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 def main() -> int:
@@ -58,6 +60,9 @@ def main() -> int:
     colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5',
               '#8c564b', '#c49c94', '#e377c2', '#f7b6d2', '#7f7f7f', '#c7c7c7', '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
 
+    # Map each config to a unique color to keep coloring consistent across all subplots
+    config_to_color = {cfg: colors[idx % len(colors)] for idx, cfg in enumerate(configs)}
+
     def autolabel(rects, ax, fmt="{:.3f}"):
         """Attach a text label above each bar in *rects*, displaying its height."""
         for rect in rects:
@@ -66,7 +71,8 @@ def main() -> int:
                         xy=(rect.get_x() + rect.get_width() / 2, height),
                         xytext=(0, 3),  # 3 points vertical offset
                         textcoords="offset points",
-                        ha='center', va='bottom', fontsize=8, fontweight='semibold')
+                        ha='center', va='bottom', fontsize=8, fontweight='bold',
+                        rotation=90)
 
     # Helper function to plot a bar chart with sorting
     def plot_metric(ax, title, ylabel, data_list, fmt, reverse_sort=False):
@@ -74,8 +80,8 @@ def main() -> int:
         sorted_data = sorted(zip(configs, data_list), key=lambda x: x[1], reverse=reverse_sort)
         sorted_configs, sorted_vals = zip(*sorted_data)
         
-        # Select colors matching sorted configurations
-        bar_colors = [colors[i % len(colors)] for i in range(len(sorted_configs))]
+        # Select colors matching sorted configurations (consistent coloring)
+        bar_colors = [config_to_color[cfg] for cfg in sorted_configs]
         
         rects = ax.bar(sorted_configs, sorted_vals, color=bar_colors, edgecolor='grey', alpha=0.85)
         ax.set_title(title, fontsize=11, fontweight="bold", pad=10)
@@ -83,6 +89,10 @@ def main() -> int:
         ax.tick_params(axis='x', rotation=45, labelsize=8)
         ax.tick_params(axis='y', labelsize=8)
         autolabel(rects, ax, fmt)
+        
+        # Add extra padding at the top of the y-axis to ensure rotated labels are not cut off
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(ymin, ymax + (ymax - ymin) * 0.20)
 
     # Row 1: Core Performance and Throughput
     # 1. IPC (System Throughput - Higher is better)
