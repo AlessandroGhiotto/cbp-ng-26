@@ -1,6 +1,8 @@
 #include "bimode.hpp"
 #include "bimodeL.hpp"
 #include "gag.hpp"
+#include "tage_simple.hpp"
+#include "tageL.hpp"
 #include "gagL.hpp"
 #include "gap.hpp"
 #include "gapL.hpp"
