@@ -86,7 +86,6 @@ struct bimodeL : predictor
     {
         inst_pc.fanout(hard<2> {});
 
-        // 1. Index PHTs using line PC XOR BHR
         val<PHT_B> pht_row_idx = val<PHT_B> { inst_pc >> 6 } ^ val<PHT_B> { bhr };
         pht_idx = pht_row_idx;
 
