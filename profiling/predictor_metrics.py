@@ -102,6 +102,7 @@ avg_EPI = avg_EPI / count
 avg_MPI = avg_MPI / count
 avg_DPI = avg_DPI / count
 avg_PPI = avg_PPI / count
+avg_throughput = 1.0 / avg_PPI if avg_PPI > 0 else 0.0
 
-#ipc,cpi,epi,mpi,dpi,ppi,p1_latency,p2_latency
-print(f"{avg_IPC:.6f},{avg_CPI:.6f},{avg_EPI:.6f},{avg_MPI:.6f},{avg_DPI:.6f},{avg_PPI:.6f},{p1_latency},{p2_latency}")
+#ipc,cpi,epi,mpi,dpi,ppi,throughput,p1_latency,p2_latency
+print(f"{avg_IPC:.6f},{avg_CPI:.6f},{avg_EPI:.6f},{avg_MPI:.6f},{avg_DPI:.6f},{avg_PPI:.6f},{avg_throughput:.6f},{p1_latency},{p2_latency}")

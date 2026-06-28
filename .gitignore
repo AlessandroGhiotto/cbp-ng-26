@@ -1,3 +1,6 @@
 /__pycache__/**
 /.vscode/**
+echo "venv/" >> .gitignore
 AGENTS.md
+venv/
+**/*.out

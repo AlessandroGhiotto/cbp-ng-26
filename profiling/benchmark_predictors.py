@@ -22,10 +22,10 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-REPO_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-CONFIGS: list[tuple[str, str]] = [
+DEFAULT_CONFIGS: list[tuple[str, str]] = [
     ("lxor_8_6", "lxor<8,6>"),
     ("lxor_10_8", "lxor<>"),
     ("lxor_12_10", "lxor<12,10>"),
@@ -33,6 +33,19 @@ CONFIGS: list[tuple[str, str]] = [
     ("gshare", "gshare<>"),
     ("bimodal", "bimodal<>"),
     ("perceptron", "perceptron<>"),
+]
+
+OUR_CONFIGS: list[tuple[str, str]] = [
+    ("gag", "gag<>"),
+    ("gagL", "gagL<>"),
+    ("gap", "gap<>"),
+    ("gapL", "gapL<>"),
+    ("gshare_simple", "gshare_simple<>"),
+    ("lxor", "lxor<>"),
+    ("pag", "pag<>"),
+    ("pagL", "pagL<>"),
+    ("pap", "pap<>"),
+    ("papL", "papL<>"),
 ]
 
 
@@ -95,8 +108,9 @@ def run_benchmark(
 
 
 def summarize_result_dir(result_dir: Path) -> list[str]:
+    metrics_script = Path(__file__).resolve().parent / "predictor_metrics.py"
     output = subprocess.check_output(
-        [sys.executable, "predictor_metrics.py", str(result_dir)],
+        [sys.executable, str(metrics_script), str(result_dir)],
         cwd=REPO_ROOT,
         text=True,
     )
@@ -125,6 +139,16 @@ def main() -> int:
     parser.add_argument(
         "--measure", type=int, default=1000, help="Measurement instructions per trace"
     )
+    parser.add_argument(
+        "--mode",
+        choices=["default", "our", "all"],
+        default="default",
+        help="Which set of predictors to run ('default', 'our' (custom predictors), or 'all')",
+    )
+    parser.add_argument(
+        "--predictors",
+        help="Comma-separated list of predictor labels/names to run (e.g., gag,gap)",
+    )
     args = parser.parse_args()
 
     trace_path = (
@@ -140,17 +164,31 @@ def main() -> int:
     )
     out_root.mkdir(parents=True, exist_ok=True)
 
+    if args.mode == "default":
+        configs = DEFAULT_CONFIGS
+    elif args.mode == "our":
+        configs = OUR_CONFIGS
+    else:
+        configs = DEFAULT_CONFIGS + OUR_CONFIGS
+
+    if args.predictors:
+        selected = [p.strip() for p in args.predictors.split(",")]
+        configs = [c for c in configs if any(s == c[0] or s == c[1] for s in selected)]
+
     print(f"Traces: {len(traces)}")
     print(f"Warmup: {args.warmup}")
     print(f"Measure: {args.measure}")
+    print(f"Mode: {args.mode}")
+    if args.predictors:
+        print(f"Selected predictors: {args.predictors}")
 
     summaries: list[dict[str, str]] = []
-    for label, predictor_expr in CONFIGS:
+    for label, predictor_expr in configs:
         print(f"\n=== {label} ({predictor_expr}) ===")
         result_dir = run_benchmark(
             label, predictor_expr, traces, out_root, args.warmup, args.measure
         )
-        ipc, cpi, epi, mpi, dpi, ppi, p1_lat, p2_lat = summarize_result_dir(result_dir)
+        ipc, cpi, epi, mpi, dpi, ppi, throughput, p1_lat, p2_lat = summarize_result_dir(result_dir)
         summaries.append(
             {
                 "config": label,
@@ -161,6 +199,7 @@ def main() -> int:
                 "mpi": mpi,
                 "dpi": dpi,
                 "ppi": ppi,
+                "throughput": throughput,
                 "p1_latency": p1_lat,
                 "p2_latency": p2_lat,
             }
@@ -178,6 +217,7 @@ def main() -> int:
         "MPI",
         "DPI",
         "PPI",
+        "Throughput",
         "P1 lat",
         "P2 lat",
     ]
@@ -195,6 +235,7 @@ def main() -> int:
                     row["mpi"],
                     row["dpi"],
                     row["ppi"],
+                    row["throughput"],
                     row["p1_latency"],
                     row["p2_latency"],
                 ]
@@ -214,6 +255,7 @@ def main() -> int:
                 "mpi",
                 "dpi",
                 "ppi",
+                "throughput",
                 "p1_latency",
                 "p2_latency",
             ],
