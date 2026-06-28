@@ -11,7 +11,7 @@ struct gag : predictor
      * counters indexed by the BHR (BHR_B bits).
      */
 
-    // we have 2^BHR_B counters of val<CTR_B>
+    // we have 2^BHR_B counters of val<CTR_B> (which define the PHT size)
     static constexpr u64 PHT_ROWS = 1 << BHR_B;
     ram<val<CTR_B>, PHT_ROWS> counters;
     reg<CTR_B> counter;

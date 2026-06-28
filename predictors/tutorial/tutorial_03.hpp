@@ -54,7 +54,7 @@ struct tutorial_03 : predictor
         {
             // saturated in both direction! (S-NT | S-T)
             saturated[i] = (counter[i] == hard<0> {}) | (counter[i] == hard<3> {});
-            // counter >> (counter.size - 1)  menas that we take the leftmost bit
+            // counter >> (counter.size - 1)  means that we take the leftmost bit
             // this is just prediction with the saturating counter
             // ex n = 3
             // 000, 001, ... 011 -> pred 0 (0, 1, 2 ,3)(not just W-NT, S-NT but 4 values)

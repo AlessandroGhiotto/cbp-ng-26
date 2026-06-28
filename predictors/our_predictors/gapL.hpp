@@ -3,12 +3,12 @@
 
 using namespace hcm;
 
-template <u64 BHR_B = 8, u64 CTR_B = 2, u64 LINE_B = 4>
+template <u64 BHR_B = 8, u64 PC_B = 4, u64 CTR_B = 2, u64 LINE_B = 4>
 struct gapL : predictor
 {
     /*
      * Predict 2^LINE_B instruction per cycle using an SRAM array of simple CTR_B-bit (2-bit)
-     * counters indexed by the BHR (BHR_B bits).
+     * counters indexed by the PC_B lsb of the PC concatenated with a BHR (BHR_B bits).
      */
 
     static constexpr u64 MAX_CTR = (1 << CTR_B) - 1;
@@ -16,11 +16,13 @@ struct gapL : predictor
     // LI = LI (instructions in a line)
     // LI = 2^LINE_B = #instructions predicted per cycle
     static constexpr u64 LI = 1 << LINE_B;
-    static constexpr u64 PHT_ROWS = 1 << BHR_B;
+    static constexpr u64 B = BHR_B + PC_B;
+    static constexpr u64 PHT_ROWS = 1 << B;
     // each row contains an arry of LI saturating counters
     ram<arr<val<CTR_B>, LI>, PHT_ROWS> counters;
     // reg<CTR_B> counter;
     reg<BHR_B> bhr;
+    reg<PC_B> block_pc;
 
     // values to be used for update time [ONE PER INSTRUCTION]
     arr<reg<CTR_B>, LI> counter;
@@ -39,9 +41,12 @@ struct gapL : predictor
         // reset branches ctr
         num_branches = 0;
 
-        // get counter (a whole line!)
+        // save the line PC to a register
+        block_pc = inst_pc >> (2 + LINE_B);
 
-        counter = counters.read(bhr);
+        // get counter (a whole line!) using concat of line PC and bhr
+        val<B> index = concat(val<PC_B> { inst_pc >> (2 + LINE_B) }, bhr);
+        counter = counters.read(index.fo1());
 
         // FOR EACH OFFSET
         for (u64 i = 0; i < LI; i++)
@@ -170,8 +175,9 @@ struct gapL : predictor
 
         // Finally, write back to the array (only if needed)
         execute_if(performing_update, [&]() {
-            // ! HERE THE INDEX IS THE BHR (change it if needed)
-            counters.write(old_bhr.fo1(), new_counters);
+            // ! HERE THE INDEX IS PC CONCATENATED WITH BHR
+            val<B> write_index = concat(block_pc.fo1(), old_bhr.fo1());
+            counters.write(write_index.fo1(), new_counters);
         });
     }
 };
