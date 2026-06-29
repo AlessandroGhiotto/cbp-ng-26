@@ -55,8 +55,8 @@ struct bimodeL : predictor
 
         inst_pc.fanout(hard<2> {});
 
-        // 1. Index Choice Table using line address (PC >> 6)
-        val<CHOICE_B> choice_row_idx = val<CHOICE_B> { inst_pc >> 6 };
+        // 1. Index Choice Table using line address (PC >> 2 + LINE_B)
+        val<CHOICE_B> choice_row_idx = val<CHOICE_B> { inst_pc >> 2 + LINE_B };
         choice_idx = choice_row_idx;
 
         arr<val<CTR_B>, LI> choice_line = choice_table.read(choice_row_idx);
@@ -86,7 +86,7 @@ struct bimodeL : predictor
     {
         inst_pc.fanout(hard<2> {});
 
-        val<PHT_B> pht_row_idx = val<PHT_B> { inst_pc >> 6 } ^ val<PHT_B> { bhr };
+        val<PHT_B> pht_row_idx = val<PHT_B> { inst_pc >> 2 + LINE_B } ^ val<PHT_B> { bhr };
         pht_idx = pht_row_idx;
 
         // 2. Read both Taken and Not-Taken PHT lines at Level 2

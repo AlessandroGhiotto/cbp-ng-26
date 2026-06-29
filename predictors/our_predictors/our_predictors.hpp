@@ -1,7 +1,7 @@
 #include "bimode.hpp"
 #include "bimodeL.hpp"
 #include "gag.hpp"
-#include "local_global_tage.hpp"
+// #include "local_global_tage.hpp"
 #include "gagL.hpp"
 #include "gap.hpp"
 #include "gapL.hpp"
@@ -11,4 +11,3 @@
 #include "pagL.hpp"
 #include "pap.hpp"
 #include "papL.hpp"
-

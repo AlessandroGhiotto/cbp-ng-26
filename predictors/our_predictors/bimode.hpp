@@ -13,7 +13,7 @@ using namespace hcm;
  * 2. Two PHT tables (each 2-bit counters):
  *    - Taken PHT: indexed by PC XOR BHR.
  *    - Not-Taken PHT: indexed by PC XOR BHR.
- * 
+ *
  * To save energy, only the PHT selected by the choice table is read and updated.
  *
  * This implementation makes a 1-cycle prediction at level 1 and reuse at level 2.
@@ -67,7 +67,7 @@ struct bimode : predictor
         // 3. Conditionally read only the chosen PHT table to save read energy
         val<CTR_B> t_ctr = execute_if(c_val, [&]() { return taken_pht.read(p_idx); });
         val<CTR_B> nt_ctr = execute_if(~c_val, [&]() { return not_taken_pht.read(p_idx); });
-        
+
         val<CTR_B> p_ctr = select(c_val, t_ctr, nt_ctr);
         p_ctr.fanout(hard<2> {});
         pht_ctr = p_ctr;
@@ -93,14 +93,14 @@ struct bimode : predictor
         // 1. Calculate new choice counter value (always update choice table based on actual direction)
         val<CTR_B> new_choice_ctr = update_ctr(choice_ctr, taken);
         new_choice_ctr.fanout(hard<2> {});
-        
+
         val<1> update_choice = val<1> { new_choice_ctr != choice_ctr };
         update_choice.fanout(hard<2> {});
 
         // 2. Calculate new PHT counter value
         val<CTR_B> new_pht_ctr = update_ctr(pht_ctr, taken);
         new_pht_ctr.fanout(hard<3> {});
-        
+
         val<1> update_pht = val<1> { new_pht_ctr != pht_ctr };
         update_pht.fanout(hard<3> {});
 
