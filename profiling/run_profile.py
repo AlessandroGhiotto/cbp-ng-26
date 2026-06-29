@@ -30,12 +30,10 @@ PREDICTORS = {
     "tage": ("TAGE (base)", "tage<>"),
     # Our Pipelined Line-Wide Predictors (Optimized)
     "bimodeL": ("Bi-Mode Line (opt)", "bimodeL<7,6,8,2,4>"),
-    "tageL": ("TAGE-Lite Line (opt)", "tageL<8,8,8,8,6>"),
     # Other Custom Predictors
     "bimode": ("Bi-Mode (simple)", "bimode<>"),
     "gshare_simple": ("GShare (simple)", "gshare_simple<>"),
     "lxor": ("LXOR (simple)", "lxor<>"),
-    "tage_simple": ("TAGE-Lite (simple)", "tage_simple<>"),
     "gag": ("GAG (simple)", "gag<>"),
     "gagL": ("GAG Line", "gagL<>"),
     "gap": ("GAP (simple)", "gap<>"),
