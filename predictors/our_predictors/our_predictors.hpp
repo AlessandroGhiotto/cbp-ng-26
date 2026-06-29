@@ -12,3 +12,4 @@
 #include "pagL.hpp"
 #include "pap.hpp"
 #include "papL.hpp"
+#include "tage_simple.hpp"
