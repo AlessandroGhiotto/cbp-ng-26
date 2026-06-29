@@ -1,5 +1,6 @@
 #include "bimode.hpp"
 #include "bimodeL.hpp"
+#include "bimode_singleram.hpp"
 #include "gag.hpp"
 // #include "local_global_tage.hpp"
 #include "gagL.hpp"
