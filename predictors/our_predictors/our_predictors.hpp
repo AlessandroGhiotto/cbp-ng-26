@@ -8,6 +8,7 @@
 #include "gapL.hpp"
 #include "gshare.hpp"
 #include "lxor.hpp"
+#include "lxor_vibe.hpp"
 #include "pag.hpp"
 #include "pagL.hpp"
 #include "pap.hpp"

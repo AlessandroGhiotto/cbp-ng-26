@@ -26,7 +26,7 @@ int main(int argc, char * argv[])
 
     try {
 
-        while (ninstr < total_instructions) {
+        while (!warmed_up || ninstr < measurement_instructions) {
 
             auto inst = reader.next_instruction();
             ninstr++;
