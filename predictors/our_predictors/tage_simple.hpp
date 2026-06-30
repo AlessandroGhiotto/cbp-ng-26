@@ -135,11 +135,14 @@ struct tage_simple : predictor
         is_p2.fanout(hard<3> {});
         is_p3.fanout(hard<2> {});
 
+        val<1> counter_changed = (new_ctr != final_counter);
+        counter_changed.fanout(hard<4> {});
+
         // Define a single, combined write condition for each individual table component
-        val<1> write_t0 = is_p0;
-        val<1> write_t1 = is_p1 | (mispredicted & is_p0 & (L1 > 0));
-        val<1> write_t2 = is_p2 | (mispredicted & is_p1 & (L2 > 0));
-        val<1> write_t3 = is_p3 | (mispredicted & is_p2 & (L3 > 0));
+        val<1> write_t0 = is_p0 & counter_changed;
+        val<1> write_t1 = (is_p1 & counter_changed) | (mispredicted & is_p0 & (L1 > 0));
+        val<1> write_t2 = (is_p2 & counter_changed) | (mispredicted & is_p1 & (L2 > 0));
+        val<1> write_t3 = (is_p3 & counter_changed) | (mispredicted & is_p2 & (L3 > 0));
 
         write_t1.fanout(hard<2> {});
         write_t2.fanout(hard<2> {});
