@@ -49,7 +49,7 @@ struct bimodeL : predictor
     arr<reg<LINE_B>, LI> branch_offset;
     arr<reg<1>, LI> branch_taken;
 
-    val<1> predict1(val<64> inst_pc) override
+    val<1> predict1(val<64> inst_pc)
     {
         num_branches = 0;
 
@@ -57,6 +57,7 @@ struct bimodeL : predictor
 
         // 1. Index Choice Table using line address (PC >> 2 + LINE_B)
         val<CHOICE_B> choice_row_idx = val<CHOICE_B> { inst_pc >> 2 + LINE_B };
+        choice_row_idx.fanout(hard<2> {});
         choice_idx = choice_row_idx;
 
         arr<val<CTR_B>, LI> choice_line = choice_table.read(choice_row_idx);
@@ -72,21 +73,22 @@ struct bimodeL : predictor
 
         // Level 1 prediction based purely on Choice Table
         val<LINE_B> offset = inst_pc >> 2;
-        return choice_preds.select(offset);
+        return choice_preds.select(offset.fo1());
     }
 
-    val<1> reuse_predict1(val<64> inst_pc) override
+    val<1> reuse_predict1(val<64> inst_pc)
     {
         val<LINE_B> offset = inst_pc >> 2;
         arr<val<1>, LI> choice_preds = choice_val_line.make_array(val<1> {});
-        return choice_preds.select(offset);
+        return choice_preds.fo1().select(offset.fo1());
     }
 
-    val<1> predict2(val<64> inst_pc) override
+    val<1> predict2(val<64> inst_pc)
     {
         inst_pc.fanout(hard<2> {});
 
         val<PHT_B> pht_row_idx = val<PHT_B> { inst_pc >> 2 + LINE_B } ^ val<PHT_B> { bhr };
+        pht_row_idx.fanout(hard<3> {});
         pht_idx = pht_row_idx;
 
         // 2. Read both Taken and Not-Taken PHT lines at Level 2
@@ -101,8 +103,9 @@ struct bimodeL : predictor
 
         // Select the counter line based on choice table predictions
         arr<val<CTR_B>, LI> selected_line = [&](u64 i) {
-            return select(choice_preds[i], t_line[i], nt_line[i]);
+            return select(choice_preds.fo1()[i], t_line[i], nt_line[i]);
         };
+        selected_line.fanout(hard<2> {});
         pht_ctr_line = selected_line;
 
         val<LINE_B> offset = inst_pc >> 2;
@@ -113,10 +116,10 @@ struct bimodeL : predictor
         arr<val<1>, LI> pred_taken = [&](u64 i) {
             return selected_line[i] >> (CTR_B - 1);
         };
-        return pred_taken.select(offset);
+        return pred_taken.fo1().select(offset);
     }
 
-    val<1> reuse_predict2(val<64> inst_pc) override
+    val<1> reuse_predict2(val<64> inst_pc)
     {
         val<LINE_B> offset = inst_pc >> 2;
         offset.fanout(hard<2> {});
@@ -125,7 +128,7 @@ struct bimodeL : predictor
         arr<val<1>, LI> pred_taken = [&](u64 i) {
             return pht_ctr_line[i] >> (CTR_B - 1);
         };
-        return pred_taken.select(offset);
+        return pred_taken.fo1().select(offset);
     }
 
     inline val<CTR_B> update_counter(val<CTR_B> ctr, val<1> incr)
@@ -136,31 +139,27 @@ struct bimodeL : predictor
         return select(incr.fo1(), increased.fo1(), decreased.fo1());
     }
 
-    void update_condbr(val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc) override
+    void update_condbr(val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
-        branch_offset[num_branches] = branch_pc >> 2;
-        branch_taken[num_branches] = taken;
+        branch_offset[num_branches] = branch_pc.fo1() >> 2;
+        branch_taken[num_branches] = taken.fo1();
         num_branches++;
     }
 
-    void update_cycle(instruction_info& block_end_info) override
+    void update_cycle([[maybe_unused]] instruction_info& block_end_info)
     {
-        val<1>& mispredict = block_end_info.is_mispredict;
+        // val<1>& mispredict = block_end_info.is_mispredict.fo1();
 
         if (num_branches == 0)
         {
             return;
         }
 
-        // 1. Update BHR
+        // Update BHR
         val<LI> new_history = branch_taken.concat().reverse() >> (LI - num_branches);
         bhr = (bhr << num_branches) + new_history.fo1();
 
-        // 2. Build branch mask and taken mask for the cacheline
-        mispredict.fanout(hard<2> {});
-        branch_offset.fanout(hard<LI> {});
-        branch_taken.fanout(hard<3> {});
-
+        // Build branch mask and taken mask for the cacheline
         arr<val<LI>, LI> branch_onehot = [&](u64 i) {
             val<LI> valid_mask = val<1> { i < num_branches }.replicate(hard<LI> {}).concat();
             return valid_mask & branch_offset[i].decode().concat();
@@ -172,29 +171,23 @@ struct bimodeL : predictor
         arr<val<LI>, LI> taken_onehot = [&](u64 i) {
             return branch_onehot[i] & branch_taken[i].replicate(hard<LI> {}).concat();
         };
-        val<LI> taken_mask = taken_onehot.fold_or();
-        taken_mask.fanout(hard<3> {});
+        val<LI> taken_mask = taken_onehot.fo1().fold_or();
+        taken_mask.fanout(hard<2> {});
 
-        // 3. Compute new Choice and PHT lines
-        choice_ctr_line.fanout(hard<2> {});
-        pht_ctr_line.fanout(hard<2> {});
-        choice_val_line.fanout(hard<3> {});
-        reg_taken_line.fanout(hard<2> {});
-        reg_not_taken_line.fanout(hard<2> {});
-
+        // Compute new Choice and PHT lines
         arr<val<CTR_B>, LI> new_choice_line = [&](u64 i) {
             val<1> is_exec = val<1> { branch_mask >> i };
             val<1> is_taken = val<1> { taken_mask >> i };
-            val<CTR_B> updated_ctr = update_counter(choice_ctr_line[i], is_taken);
-            return select(is_exec, updated_ctr, choice_ctr_line[i]);
+            val<CTR_B> updated_ctr = update_counter(choice_ctr_line[i], is_taken.fo1());
+            return select(is_exec.fo1(), updated_ctr.fo1(), choice_ctr_line[i]);
         };
         new_choice_line.fanout(hard<2> {});
 
         arr<val<CTR_B>, LI> new_pht_line = [&](u64 i) {
             val<1> is_exec = val<1> { branch_mask >> i };
             val<1> is_taken = val<1> { taken_mask >> i };
-            val<CTR_B> updated_ctr = update_counter(pht_ctr_line[i], is_taken);
-            return select(is_exec, updated_ctr, pht_ctr_line[i]);
+            val<CTR_B> updated_ctr = update_counter(pht_ctr_line[i], is_taken.fo1());
+            return select(is_exec.fo1(), updated_ctr.fo1(), pht_ctr_line[i]);
         };
         new_pht_line.fanout(hard<3> {});
 
@@ -202,8 +195,8 @@ struct bimodeL : predictor
         arr<val<CTR_B>, LI> new_taken_line = [&](u64 i) {
             val<1> is_chosen = val<1> { choice_val_line >> i };
             val<1> is_exec = val<1> { branch_mask >> i };
-            val<1> update_taken = is_exec & is_chosen;
-            return select(update_taken, new_pht_line[i], reg_taken_line[i]);
+            val<1> update_taken = is_exec.fo1() & is_chosen.fo1();
+            return select(update_taken.fo1(), new_pht_line[i], reg_taken_line[i]);
         };
         new_taken_line.fanout(hard<2> {});
 
@@ -211,12 +204,12 @@ struct bimodeL : predictor
         arr<val<CTR_B>, LI> new_not_taken_line = [&](u64 i) {
             val<1> is_chosen = val<1> { choice_val_line >> i };
             val<1> is_exec = val<1> { branch_mask >> i };
-            val<1> update_not_taken = is_exec & ~is_chosen;
-            return select(update_not_taken, new_pht_line[i], reg_not_taken_line[i]);
+            val<1> update_not_taken = is_exec.fo1() & ~is_chosen.fo1();
+            return select(update_not_taken.fo1(), new_pht_line[i], reg_not_taken_line[i]);
         };
         new_not_taken_line.fanout(hard<2> {});
 
-        // 4. Determine which updates are actually performed
+        // Determine which updates are actually performed
         val<1> performing_choice_update = (new_choice_line.concat() != choice_ctr_line.concat());
         val<1> performing_taken_update = (new_taken_line.concat() != reg_taken_line.concat());
         val<1> performing_not_taken_update = (new_not_taken_line.concat() != reg_not_taken_line.concat());

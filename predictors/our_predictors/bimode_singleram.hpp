@@ -10,11 +10,11 @@ using namespace hcm;
  * This predictor uses:
  * 1. A Choice Table (2-bit saturating counters) indexed by the branch PC.
  *    It predicts whether the branch is likely taken (bias = 1) or not-taken (bias = 0).
- * 2. Two PHT tables (each 2-bit counters):
- *    - Taken PHT: indexed by PC XOR BHR.
- *    - Not-Taken PHT: indexed by PC XOR BHR.
+ * 2. A PHT tables (each 2-bit counters):
+ *    indexed by concat(choice_bit, PC XOR BHR),
+ *    where the choice bit is 1 if bias=1, 0 if bias=0
  *
- * To save energy, only the PHT selected by the choice table is read and updated.
+ * it acts as a single PHT which is big as the TAKEN BHT and NOT TAKEN BHT merged together.
  *
  * This implementation makes a 1-cycle prediction at level 1 and reuse at level 2.
  */
@@ -27,25 +27,23 @@ struct bimode_singleram : predictor
 
     // Choice table and two directional PHTs
     ram<val<CTR_B>, CHOICE_ENTRIES> choice_table;
-    ram<val<CTR_B>, PHT_ENTRIES> taken_pht;
-    // ram<val<CTR_B>, PHT_ENTRIES> not_taken_pht;
+    ram<val<CTR_B>, PHT_ENTRIES> pht;
 
     // Registers to save prediction state for update
     reg<CHOICE_B> choice_idx;
     reg<CTR_B> choice_ctr;
-    reg<1> choice_val;
+    reg<1> choice_bit;
 
     reg<PHT_B> pht_idx;
     reg<CTR_B> pht_ctr;
 
-    // Branch History Register (BHR)
     reg<BHR_B> bhr;
 
     val<1> predict1(val<64> inst_pc) override
     {
         inst_pc.fanout(hard<2> {});
 
-        // 1. Index Choice Table using low PC bits
+        // Index Choice Table using low PC bits
         val<CHOICE_B> c_idx = val<CHOICE_B> { inst_pc >> 2 };
         c_idx.fanout(hard<2> {});
         choice_idx = c_idx;
@@ -56,23 +54,20 @@ struct bimode_singleram : predictor
 
         // Determine if choice predictor is biased towards taken
         val<1> c_val = c_ctr >> (CTR_B - 1);
-        c_val.fanout(hard<4> {});
-        choice_val = c_val;
+        c_val.fanout(hard<2> {});
+        choice_bit = c_val;
 
-        // 2. Index PHTs using PC XOR BHR
+        // Index PHTs using [choice_bit, PC XOR BHR]
         val<PHT_B> p_idx = val<PHT_B> { inst_pc >> 2 } ^ val<PHT_B> { bhr };
-        p_idx.fanout(hard<3> {});
+        p_idx.fanout(hard<2> {});
         pht_idx = p_idx;
 
-        // 3. Conditionally read only the chosen PHT table to save read energy
-        // val<CTR_B> t_ctr = execute_if(c_val, [&]() { return taken_pht.read(p_idx); });
-        // val<CTR_B> nt_ctr = execute_if(~c_val, [&]() { return not_taken_pht.read(p_idx); });
-
-        val<CTR_B> p_ctr = taken_pht.read(concat(c_val, p_idx));
+        // Read PHT
+        val<CTR_B> p_ctr = pht.read(concat(c_val, p_idx));
         p_ctr.fanout(hard<2> {});
         pht_ctr = p_ctr;
 
-        // 4. Return the direction prediction (MSB of selected counter)
+        // Return the direction prediction (MSB of selected counter)
         return p_ctr >> (CTR_B - 1);
     }
 
@@ -83,48 +78,35 @@ struct bimode_singleram : predictor
 
     void update_condbr([[maybe_unused]] val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc) override
     {
-        // Declare fanouts
-        choice_val.fanout(hard<2> {});
-        choice_ctr.fanout(hard<2> {});
-        pht_ctr.fanout(hard<2> {});
-        pht_idx.fanout(hard<2> {});
         taken.fanout(hard<3> {});
 
-        // 1. Calculate new choice counter value (always update choice table based on actual direction)
+        // new choice counter value (always update choice table based on actual direction)
         val<CTR_B> new_choice_ctr = update_ctr(choice_ctr, taken);
         new_choice_ctr.fanout(hard<2> {});
 
         val<1> update_choice = val<1> { new_choice_ctr != choice_ctr };
         update_choice.fanout(hard<2> {});
 
-        // 2. Calculate new PHT counter value
+        // new PHT counter value
         val<CTR_B> new_pht_ctr = update_ctr(pht_ctr, taken);
-        new_pht_ctr.fanout(hard<3> {});
+        new_pht_ctr.fanout(hard<2> {});
 
         val<1> update_pht = val<1> { new_pht_ctr != pht_ctr };
-        update_pht.fanout(hard<3> {});
+        update_pht.fanout(hard<2> {});
 
         // Request extra cycle if updates are actually performed (SRAM write cycles)
         need_extra_cycle(update_choice | update_pht);
 
-        // 3. Write updated counters to choice table
+        // update table
         execute_if(update_choice, [&]() {
             choice_table.write(choice_idx, new_choice_ctr);
         });
 
-        // 4. Write updated counters to the selected PHT only
-        // val<1> update_taken_pht = update_pht & choice_val;
-        // val<1> update_not_taken_pht = update_pht & ~choice_val;
-
-        // execute_if(update_taken_pht, [&]() {
-        //     taken_pht.write(pht_idx, new_pht_ctr);
-        // });
-
         execute_if(update_pht, [&]() {
-            taken_pht.write(concat(choice_val, pht_idx), new_pht_ctr);
+            pht.write(concat(choice_bit, pht_idx), new_pht_ctr);
         });
 
-        // 5. Update Branch History Register (BHR)
+        // update bhr
         bhr = (bhr << 1) + taken;
     }
 
