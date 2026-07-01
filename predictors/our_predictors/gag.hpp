@@ -22,6 +22,7 @@ struct gag : predictor
         // Index into the array of counters, saving the counter value to
         // a register
         counter = counters.read(bhr);
+        counter.fanout(hard<2> {});
 
         // Use the top (LEFTMOST) bit of the counter to predict the branch's direction
         return counter >> (counter.size - 1);
@@ -52,6 +53,7 @@ struct gag : predictor
         // Determine whether to perform an update - when the updated counter is
         // different than the read counter
         val<1> performing_update = val<1> { newcounter != counter };
+        performing_update.fanout(hard<2> {});
 
         // If we are doing an update, inform the simulator we need an extra
         // cycle to write the array (note this must be called *before* the

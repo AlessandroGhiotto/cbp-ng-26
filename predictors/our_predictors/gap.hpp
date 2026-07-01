@@ -20,11 +20,12 @@ struct gap : predictor
 
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
-        val<B> index = concat(val<PC_B> { inst_pc }, bhr);
+        val<B> index = concat(val<PC_B> { inst_pc.fo1() }, bhr);
 
         // Index into the array of counters, saving the counter value to
         // a register
         counter = counters.read(index.fo1());
+        counter.fanout(hard<2> {});
 
         // Use the top (LEFTMOST) bit of the counter to predict the branch's direction
         return counter >> (counter.size - 1);
@@ -47,8 +48,8 @@ struct gap : predictor
     void update_condbr([[maybe_unused]] val<64> branch_pc, [[maybe_unused]] val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
         // Declare fanouts for variables used multiple times in this function
-        // branch_pc.fanout(hard<1> {});
-        bhr.fanout(hard<3> {});
+        taken.fanout(hard<2> {});
+
         // update the BHR
         val<BHR_B> old_bhr = bhr;
         bhr = (bhr << 1) + taken;
@@ -56,10 +57,12 @@ struct gap : predictor
         // Calculate the new saturating counter value based on its previous
         // value and the executed direction of the branch
         val<CTR_B> newcounter = update_counter(counter, taken);
+        newcounter.fanout(hard<2> {});
 
         // Determine whether to perform an update - when the updated counter is
         // different than the read counter
         val<1> performing_update = val<1> { newcounter != counter };
+        performing_update.fanout(hard<2> {});
 
         // If we are doing an update, inform the simulator we need an extra
         // cycle to write the array (note this must be called *before* the

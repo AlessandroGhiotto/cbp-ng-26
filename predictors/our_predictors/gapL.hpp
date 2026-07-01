@@ -38,6 +38,8 @@ struct gapL : predictor
     // Full table lookup
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
+        inst_pc.fanout(hard<3> {});
+
         // reset branches ctr
         num_branches = 0;
 
@@ -47,6 +49,7 @@ struct gapL : predictor
         // get counter (a whole line!) using concat of line PC and bhr
         val<B> index = concat(val<PC_B> { inst_pc >> (2 + LINE_B) }, bhr);
         counter = counters.read(index.fo1());
+        counter.fanout(hard<4> {});
 
         // FOR EACH OFFSET
         for (u64 i = 0; i < LI; i++)
@@ -67,7 +70,8 @@ struct gapL : predictor
         // offset = pc/4  (since the pc increments by 4 per instructtion)
         // only low LINE_B bits matter!!
         // we have 16 branches, so 16 offsets (4 bits)
-        val<LINE_B> offset = inst_pc >> 2;
+        val<LINE_B> offset = inst_pc.fo1() >> 2;
+        offset.fanout(hard<2> {});
         // if offset == #INSTR - 1
         // then we call reuse_prediction(0)
         // (last offset in the line => we will go to the next prediction block)
@@ -80,17 +84,17 @@ struct gapL : predictor
     // we do the full table lookup only at predict1()
     val<1> reuse_predict1([[maybe_unused]] val<64> inst_pc)
     {
-        return predict(inst_pc);
+        return predict(inst_pc.fo1());
     };
     val<1> reuse_predict2([[maybe_unused]] val<64> inst_pc)
     {
-        return predict(inst_pc);
+        return predict(inst_pc.fo1());
     }
 
     // No second level predictor
     val<1> predict2([[maybe_unused]] val<64> inst_pc)
     {
-        return predict(inst_pc);
+        return predict(inst_pc.fo1());
     }
 
     inline val<CTR_B> update_counter(val<CTR_B> ctr, val<1> incr)
@@ -103,8 +107,8 @@ struct gapL : predictor
 
     void update_condbr([[maybe_unused]] val<64> branch_pc, [[maybe_unused]] val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
-        branch_offset[num_branches] = branch_pc >> 2; // STORE OFFSET
-        branch_taken[num_branches] = taken;           // STORE TRUE OUTCOME
+        branch_offset[num_branches] = branch_pc.fo1() >> 2; // STORE OFFSET
+        branch_taken[num_branches] = taken.fo1();           // STORE TRUE OUTCOME
         num_branches++;
     }
 
@@ -135,8 +139,9 @@ struct gapL : predictor
             // for this reason we need a full val<LI> of ones.
             // we do a bit-wise AND
             // 0100.decode() -> (4) -> ..001000
-            return valid_mask & branch_offset[i].decode().concat();
+            return valid_mask.fo1() & branch_offset[i].decode().concat();
         };
+        branch_onehot.fanout(hard<2> {});
         // Fold that array of 16-bit vals into a single 16-bit val with
         // bitwise-OR
         val<LI> branch_mask = branch_onehot.fold_or();
@@ -149,17 +154,20 @@ struct gapL : predictor
         arr<val<LI>, LI> taken_onehot = [&](u64 i) {
             return branch_onehot[i] & branch_taken[i].replicate(hard<LI> {}).concat();
         };
-        val<LI> taken_mask = taken_onehot.fold_or();
+        val<LI> taken_mask = taken_onehot.fo1().fold_or();
+        taken_mask.fanout(hard<LI + 1> {});
 
         // Determine which offsets we want to update. We update the counter
         // of any offset which was a branch and that branch's counter was
         // either incorrect or NOT saturated.
         val<LI> incorrect = taken_mask ^ pred_taken.concat(); // not correct if Pred != trueRes
-        val<LI> update_mask = branch_mask & (~saturated.concat() | incorrect);
+        val<LI> update_mask = branch_mask.fo1() & (~saturated.concat() | incorrect.fo1());
+        update_mask.fanout(hard<LI + 1> {});
 
         // Determine whether to perform an update - when the updated counter is
         // different than the read counter
         val<1> performing_update = (update_mask != hard<0> {});
+        performing_update.fanout(hard<2> {});
 
         arr<val<CTR_B>, LI> new_counters = [&](u64 i) {
             return select(val<1> { update_mask >> i },
@@ -176,8 +184,8 @@ struct gapL : predictor
         // Finally, write back to the array (only if needed)
         execute_if(performing_update, [&]() {
             // ! HERE THE INDEX IS PC CONCATENATED WITH BHR
-            val<B> write_index = concat(block_pc.fo1(), old_bhr.fo1());
-            counters.write(write_index.fo1(), new_counters);
+            val<B> write_index = concat(block_pc, old_bhr.fo1());
+            counters.write(write_index.fo1(), new_counters.fo1());
         });
     }
 };

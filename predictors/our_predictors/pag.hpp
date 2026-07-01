@@ -26,7 +26,7 @@ struct pag : predictor
     {
         // get BHR corresponding to the PB_B lsb of the PC
         // ! >>2 since we are counting istructions (last 2 bits are always 00)
-        index = val<PC_B> { inst_pc >> 2 };
+        index = val<PC_B> { inst_pc.fo1() >> 2 };
         bhr = bhrs.read(index);
 
         // Index into the array of counters, saving the counter value to
@@ -54,19 +54,21 @@ struct pag : predictor
     void update_condbr([[maybe_unused]] val<64> branch_pc, [[maybe_unused]] val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
         // Declare fanouts for variables used multiple times in this function
-        // branch_pc.fanout(hard<1> {});
-        bhr.fanout(hard<3> {});
-        counter.fanout(hard<2> {});
+        taken.fanout(hard<2> {});
 
         // get newcounter and see if we need to update
         val<CTR_B> newcounter = update_counter(counter, taken);
+        newcounter.fanout(hard<2> {});
         val<1> performing_update_counter = val<1> { newcounter != counter };
+        performing_update_counter.fanout(hard<2> {});
 
         // same for bhr
         // (we could assume that it always change and don't check if it changes or not
         // but this is more efficient if the bhr is very small for example)
         val<BHR_B> newbhr = (bhr << 1) + taken;
+        newbhr.fanout(hard<2> {});
         val<1> performing_update_bhr = val<1> { newbhr != bhr };
+        performing_update_bhr.fanout(hard<2> {});
 
         need_extra_cycle(performing_update_counter | performing_update_bhr);
 
