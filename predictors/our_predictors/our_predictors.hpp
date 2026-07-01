@@ -9,6 +9,7 @@
 #include "gshare.hpp"
 #include "gshareL.hpp"
 #include "lxor.hpp"
+#include "lxorL.hpp"
 #include "pag.hpp"
 #include "pagL.hpp"
 #include "pap.hpp"
