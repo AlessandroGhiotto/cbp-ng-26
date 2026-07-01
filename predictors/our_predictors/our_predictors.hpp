@@ -7,6 +7,7 @@
 #include "gap.hpp"
 #include "gapL.hpp"
 #include "gshare.hpp"
+#include "gshareL.hpp"
 #include "lxor.hpp"
 #include "pag.hpp"
 #include "pagL.hpp"

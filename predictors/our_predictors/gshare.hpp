@@ -21,7 +21,8 @@ struct gshare_simple : predictor
     val<1> predict1([[maybe_unused]] val<64> inst_pc)
     {
         // compute index
-        val<B> index = val<B> { inst_pc } ^ val<B> { bhr };
+        // ! REMEMBER TO SHIFT BY 2 THE PC
+        val<B> index = val<B> { inst_pc.fo1() >> 2 } ^ val<B> { bhr };
 
         // get ctr
         counter = counters.read(index.fo1());
@@ -47,9 +48,8 @@ struct gshare_simple : predictor
     void update_condbr([[maybe_unused]] val<64> branch_pc, [[maybe_unused]] val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
         // Declare fanouts for variables used multiple times in this function
-        // branch_pc.fanout(hard<1> {});
-        bhr.fanout(hard<3> {});
         taken.fanout(hard<2> {});
+
         // update the BHR
         val<BHR_B> old_bhr = bhr;
         bhr = (bhr << 1) + taken;
@@ -58,12 +58,13 @@ struct gshare_simple : predictor
         val<CTR_B> newcounter = update_counter(counter, taken);
         newcounter.fanout(hard<2> {});
         val<1> performing_update = val<1> { newcounter != counter };
+        performing_update.fanout(hard<2> {});
 
         need_extra_cycle(performing_update);
 
         // Update the SRAM array conditionally
         execute_if(performing_update, [&]() {
-            val<B> index = val<B> { branch_pc.fo1() } ^ val<B> { old_bhr.fo1() };
+            val<B> index = val<B> { branch_pc.fo1() >> 2 } ^ val<B> { old_bhr.fo1() };
             counters.write(index.fo1(), newcounter);
         });
     }
