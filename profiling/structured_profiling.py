@@ -69,13 +69,13 @@ CONFIGS = {
             "size_desc": "2^12 * 7b + 2^14 * 2b",
             "size_bits": 61440,
         },
-        {
-            "name": "lxor_vibe",
-            "expr": "lxor_vibe<12,7>",
-            "type": "Scalar",
-            "size_desc": "2^12 * 7b + 2^14 * 2b",
-            "size_bits": 61440,
-        },
+        # {
+        #     "name": "lxor_vibe",
+        #     "expr": "lxor_vibe<12,7>",
+        #     "type": "Scalar",
+        #     "size_desc": "2^12 * 7b + 2^14 * 2b",
+        #     "size_bits": 61440,
+        # },
         {
             "name": "bimode",
             "expr": "bimode<14,12,13,2>",
@@ -178,13 +178,13 @@ CONFIGS = {
             "size_desc": "2^13 * 7b + 2^14 * 2b",
             "size_bits": 90112,
         },
-        {
-            "name": "lxor_vibe",
-            "expr": "lxor_vibe<13,7>",
-            "type": "Scalar",
-            "size_desc": "2^13 * 7b + 2^14 * 2b",
-            "size_bits": 90112,
-        },
+        # {
+        #     "name": "lxor_vibe",
+        #     "expr": "lxor_vibe<13,7>",
+        #     "type": "Scalar",
+        #     "size_desc": "2^13 * 7b + 2^14 * 2b",
+        #     "size_bits": 90112,
+        # },
         {
             "name": "bimode",
             "expr": "bimode<15,14,14,2>",

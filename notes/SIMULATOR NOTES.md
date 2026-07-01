@@ -59,6 +59,27 @@ A . print ();
 If the value is actually read more than what was promised with the fanout function, no error
 is triggered. Instead, the read delay simply grows linearly after the initial logarithmic growth.
 
+**PRACTICAL GUIDE:**
+
+- fanout on registers is useless
+- for array, if we access a val/arr N times (1 per array value), it counts N.
+- for array, if we access via a for loop/lambda function all the values once, it counts 1.
+- The condition of an execute_if has an implicit fanout consisting of as many reads as the
+  number of conditional register writes and conditional RAM writes, plus one implicit read if the
+  execute_if outputs a value.
+
+Example:
+
+```cpp
+arr<val<CTR_B>, LI> new_counters = [&](u64 i) {
+    return select(val<1> { update_mask >> i },
+                  update_counter(counter[i], val<1> { taken_mask >> i }),
+                  counter[i]);
+};
+```
+
+assume that `update_mask`, `taken_mask`, `counter` are just values/arr (not registers). in this case `update_mask` and `taken_mask` needs a funout of N (N=LI in this case), since it is accessed as a whole N times. Instead counter needs a fanout of 1, since it is accessed once per value.
+
 ### fo1
 
 Whenever possible, transient values (vals) that are read only once should remain unnamed.

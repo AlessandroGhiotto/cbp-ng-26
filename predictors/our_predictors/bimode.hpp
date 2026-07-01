@@ -68,7 +68,7 @@ struct bimode : predictor
         val<CTR_B> t_ctr = execute_if(c_val, [&]() { return taken_pht.read(p_idx); });
         val<CTR_B> nt_ctr = execute_if(~c_val, [&]() { return not_taken_pht.read(p_idx); });
 
-        val<CTR_B> p_ctr = select(c_val, t_ctr, nt_ctr);
+        val<CTR_B> p_ctr = select(c_val, t_ctr.fo1(), nt_ctr.fo1());
         p_ctr.fanout(hard<2> {});
         pht_ctr = p_ctr;
 
@@ -83,11 +83,6 @@ struct bimode : predictor
 
     void update_condbr([[maybe_unused]] val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc) override
     {
-        // Declare fanouts
-        choice_val.fanout(hard<2> {});
-        choice_ctr.fanout(hard<2> {});
-        pht_ctr.fanout(hard<2> {});
-        pht_idx.fanout(hard<2> {});
         taken.fanout(hard<3> {});
 
         // 1. Calculate new choice counter value (always update choice table based on actual direction)
@@ -116,11 +111,11 @@ struct bimode : predictor
         val<1> update_taken_pht = update_pht & choice_val;
         val<1> update_not_taken_pht = update_pht & ~choice_val;
 
-        execute_if(update_taken_pht, [&]() {
+        execute_if(update_taken_pht.fo1(), [&]() {
             taken_pht.write(pht_idx, new_pht_ctr);
         });
 
-        execute_if(update_not_taken_pht, [&]() {
+        execute_if(update_not_taken_pht.fo1(), [&]() {
             not_taken_pht.write(pht_idx, new_pht_ctr);
         });
 
