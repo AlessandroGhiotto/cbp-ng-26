@@ -22,6 +22,7 @@ struct pagL : predictor
     // each row contains an arry of LI saturating counters
     ram<arr<val<CTR_B>, LI>, PHT_ROWS> counters; // PATTERN HISTORY TABLE
     ram<val<BHR_B>, BHR_ROWS> bhrs;              // GLOBAL HISTORY TABLE
+
     reg<BHR_B> bhr;
     reg<PC_B> index_bhrs;
 
