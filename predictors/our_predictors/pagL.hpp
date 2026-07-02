@@ -124,6 +124,7 @@ struct pagL : predictor
         newbhr.fanout(hard<2> {});
         val<1> performing_update_bhr = val<1> { newbhr != bhr };
         performing_update_bhr.fanout(hard<2> {});
+
         // In order to perform updates for the current cacheline, we want a
         // mask with one bit corresponding to one instruction offset in the
         // line, but to start we have an array indexed by branch number.

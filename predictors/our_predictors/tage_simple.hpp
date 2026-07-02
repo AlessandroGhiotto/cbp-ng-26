@@ -5,8 +5,9 @@
 using namespace hcm;
 
 template <
-    u64 PC_B = 10,     // Number of index bits for the tables
-    u64 TAG_B = 8,     // Number of bits for the tags
+    u64 PC_B = 10, // Number of index bits for the tables
+    u64 TAG_B = 8, // Number of bits for the tags
+    // ^^^ this actually means that we look at PB_B + TAG_B bits of the pc (and bhr) for the branch
     u64 HIST_MAX = 64, // Max size of the Global History Register
     u64 L1 = 4,        // History length for Table 1 (Short)
     u64 L2 = 16,       // History length for Table 2 (Medium)
