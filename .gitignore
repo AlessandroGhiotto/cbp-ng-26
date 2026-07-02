@@ -2,6 +2,7 @@
 /.vscode/
 /venv/
 /cbp
+/papers/
 /benchmark_results/
 /comparison_results/
 /profiling/outputs/

@@ -14,6 +14,10 @@
 #include "pagL.hpp"
 #include "pap.hpp"
 #include "papL.hpp"
+#include "perceptron_simple.hpp"
+#include "perceptron_simpleL.hpp"
+
 #include "tage_simple.hpp"
 #include "tage_simpleL.hpp"
 #include "tage_simple_u.hpp"
+#include "tage_simple_uL.hpp"

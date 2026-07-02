@@ -154,8 +154,6 @@ struct tage_simple_u : predictor
     void update_condbr([[maybe_unused]] val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
         taken.fanout(hard<11> {});
-        ghr.fanout(hard<6> {});
-        provider_id.fanout(hard<7> {});
 
         // Calculate the updated prediction state
         val<CTR_B> new_ctr = update_counter(final_counter, taken);
@@ -227,6 +225,7 @@ struct tage_simple_u : predictor
         val<1> write_u2 = alloc_t2 | decay_t2_m | (is_p2 & provider_useful);
         val<1> write_u3 = alloc_t3 | decay_t3_m | (is_p3 & provider_useful);
 
+        write_t0.fanout(hard<2> {});
         write_t1.fanout(hard<2> {});
         write_t2.fanout(hard<2> {});
         write_t3.fanout(hard<2> {});

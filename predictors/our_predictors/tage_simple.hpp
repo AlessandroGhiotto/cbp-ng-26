@@ -33,6 +33,11 @@ struct tage_simple : predictor
     reg<CTR_B> final_counter;
     reg<2> provider_id; // 0 = T0, 1 = T1, 2 = T2, 3 = T3
 
+    // Carries the T0 (base predictor) counter from predict1 into predict2,
+    // so predict2 doesn't need to re-read t0 and can just use it as the
+    // fallback value in the hit-selection mux.
+    reg<CTR_B> reg_ctr0;
+
     reg<PC_B> reg_idx0, reg_idx1, reg_idx2, reg_idx3;
     reg<TAG_B> reg_tag1, reg_tag2, reg_tag3;
 
@@ -44,15 +49,32 @@ struct tage_simple : predictor
         return select(incr.fo1(), increased.fo1(), decreased.fo1());
     }
 
+    // STAGE 1 (fast): untagged base predictor only.
+    // A single table read keyed purely on the PC — no GHR-dependent
+    // hashing, no tag check, no selection mux — so this resolves in the
+    // shortest possible time and can drive an early fetch redirect.
     val<1> predict1(val<64> inst_pc)
     {
-        inst_pc.fanout(hard<5> {});
-        ghr.fanout(hard<4> {});
-
-        // GET INDEXES + TAGS
-        // T0
         val<PC_B> idx0 = val<PC_B> { inst_pc >> 2 };
         reg_idx0 = idx0;
+
+        val<CTR_B> ctr0 = t0.read(idx0.fo1());
+        ctr0.fanout(hard<2> {});
+
+        // Stash for predict2, which will use it as the "no tagged hit" fallback.
+        reg_ctr0 = ctr0;
+
+        return ctr0 >> (CTR_B - 1);
+    }
+
+    // STAGE 2 (slow, overriding): full tagged TAGE lookup.
+    // T1-T3 need GHR-derived indices/tags plus a longest-match selection,
+    // so they're resolved here, later than predict1, and can override the
+    // base-predictor's guess if a tagged table hits.
+    val<1> predict2(val<64> inst_pc)
+    {
+        inst_pc.fanout(hard<4> {});
+        ghr.fanout(hard<4> {});
 
         // T1
         val<PC_B> idx1 = val<PC_B> { inst_pc >> 2 } ^ val<PC_B> { ghr };
@@ -73,8 +95,6 @@ struct tage_simple : predictor
         reg_tag3 = tag3;
 
         // READS
-        val<CTR_B> ctr0 = t0.read(idx0.fo1());
-
         val<ENTRY_BITS> raw1 = t1.read(idx1.fo1());
         val<ENTRY_BITS> raw2 = t2.read(idx2.fo1());
         val<ENTRY_BITS> raw3 = t3.read(idx3.fo1());
@@ -93,29 +113,23 @@ struct tage_simple : predictor
         hit2.fanout(hard<3> {});
         hit3.fanout(hard<4> {});
 
-        // Longest-History Selection (Mux Cascade=
+        // Longest-History Selection (Mux Cascade), falling back to the
+        // predict1 base-predictor counter (reg_ctr0) instead of a fresh t0 read.
         final_counter = select(hit3, ctr3,
                                select(hit2, ctr2,
-                                      select(hit1, ctr1, ctr0)));
+                                      select(hit1, ctr1, reg_ctr0)));
 
         provider_id = select(hit3, val<2> { 3 },
                              select(hit2, val<2> { 2 },
                                     select(hit1, val<2> { 1 }, val<2> { 0 })));
 
-        // Return the MSB bit of the selected counter as the prediction
-        final_counter.fanout(hard<2> {});
-        return final_counter >> (CTR_B - 1);
-    }
-
-    val<1> predict2([[maybe_unused]] val<64> inst_pc)
-    {
+        // Return the MSB bit of the selected counter as the (overriding) prediction
         return final_counter >> (CTR_B - 1);
     }
 
     void update_condbr([[maybe_unused]] val<64> branch_pc, val<1> taken, [[maybe_unused]] val<64> next_pc)
     {
         taken.fanout(hard<6> {});
-        provider_id.fanout(hard<4> {});
 
         // Calculate the updated prediction state
         val<CTR_B> new_ctr = update_counter(final_counter, taken);
@@ -145,6 +159,7 @@ struct tage_simple : predictor
         val<1> write_t2 = (is_p2 & counter_changed) | (mispredicted & is_p1 & (L2 > 0));
         val<1> write_t3 = (is_p3 & counter_changed) | (mispredicted & is_p2 & (L3 > 0));
 
+        write_t0.fanout(hard<2> {});
         write_t1.fanout(hard<2> {});
         write_t2.fanout(hard<2> {});
         write_t3.fanout(hard<2> {});
