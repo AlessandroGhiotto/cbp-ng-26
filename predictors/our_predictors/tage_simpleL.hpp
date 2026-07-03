@@ -4,6 +4,10 @@
 
 using namespace hcm;
 
+/*
+ * block based version of tage_simple.hpp
+ */
+
 template <
     u64 PC_B = 10,     // Number of index bits for the tables
     u64 TAG_B = 8,     // Number of bits for the tags

@@ -4,6 +4,10 @@
 
 using namespace hcm;
 
+/*
+ * block based version of tage_simple_u.hpp
+ */
+
 template <
     u64 PC_B = 10,     // Number of index bits for the tables
     u64 TAG_B = 8,     // Number of bits for the tags
@@ -75,7 +79,8 @@ struct tage_simple_uL : predictor
     template <u64 F, u64 L>
     val<F> get_next_folded_recursive(val<F> folded, u64 i, val<HIST_MAX> current_ghr)
     {
-        if (i >= num_branches) {
+        if (i >= num_branches)
+        {
             return folded;
         }
         val<1> taken = branch_taken[i];
@@ -284,8 +289,8 @@ struct tage_simple_uL : predictor
         val<1> alloc_t1 = mispredicted & is_p0 & ~u1_read;
         val<1> alloc_t2 = mispredicted & select(is_p0, u1_read & ~u2_read, is_p1 & ~u2_read);
         val<1> alloc_t3 = mispredicted & select(is_p0, u1_read & u2_read & ~u3_read,
-                                                 select(is_p1, u2_read & ~u3_read,
-                                                        is_p2 & ~u3_read));
+                                                select(is_p1, u2_read & ~u3_read,
+                                                       is_p2 & ~u3_read));
 
         // Decay conditions
         val<1> decay_t1_m = mispredicted & is_p0 & u123;

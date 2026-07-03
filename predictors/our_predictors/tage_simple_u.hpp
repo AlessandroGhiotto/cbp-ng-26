@@ -4,6 +4,15 @@
 
 using namespace hcm;
 
+/*
+ * tage predictor.
+ * - base_predictor: we index the PHT with the shifted PC (this is also used as predict1())
+ * - full tage lookup: we have the tree of mux that selects the longest matching history
+ *                      (this is used as predict2)
+ *
+ * additional features wrt basic version: utility bit, folded history
+ */
+
 template <
     u64 PC_B = 10,     // Number of index bits for the tables
     u64 TAG_B = 8,     // Number of bits for the tags
@@ -193,8 +202,8 @@ struct tage_simple_u : predictor
         val<1> alloc_t1 = mispredicted & is_p0 & ~u1_read;
         val<1> alloc_t2 = mispredicted & select(is_p0, u1_read & ~u2_read, is_p1 & ~u2_read);
         val<1> alloc_t3 = mispredicted & select(is_p0, u1_read & u2_read & ~u3_read,
-                                                 select(is_p1, u2_read & ~u3_read,
-                                                        is_p2 & ~u3_read));
+                                                select(is_p1, u2_read & ~u3_read,
+                                                       is_p2 & ~u3_read));
 
         // Decay conditions
         val<1> decay_t1_m = mispredicted & is_p0 & u123;

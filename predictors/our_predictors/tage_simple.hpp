@@ -6,7 +6,11 @@ using namespace hcm;
 
 /*
  * most basic tage predictor version.
- * - base_predictor: we index the PHT
+ * - base_predictor: we index the PHT with the shifted PC (this is also used as predict1())
+ * - full tage lookup: we have the tree of mux that selects the longest matching history
+ *                      (this is used as predict2)
+ *
+ * [no utility bit, history is only shifted, not folded]
  */
 
 template <
