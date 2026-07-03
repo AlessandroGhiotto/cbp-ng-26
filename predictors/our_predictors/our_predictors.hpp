@@ -1,8 +1,9 @@
 #include "bimode.hpp"
 #include "bimodeL.hpp"
 #include "bimode_singleram.hpp"
+#include "bimodepp.hpp"
+
 #include "gag.hpp"
-// #include "local_global_tage.hpp"
 #include "gagL.hpp"
 #include "gap.hpp"
 #include "gapL.hpp"
@@ -16,7 +17,7 @@
 #include "papL.hpp"
 #include "perceptron_simple.hpp"
 #include "perceptron_simpleL.hpp"
-
+#include "perceptron_simpleL_banks.hpp"
 #include "tage_simple.hpp"
 #include "tage_simpleL.hpp"
 #include "tage_simple_u.hpp"

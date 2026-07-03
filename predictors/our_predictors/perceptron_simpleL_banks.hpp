@@ -12,8 +12,8 @@ using namespace hcm;
  * - see if it greater than 0
  * - (train)
  *
- * PREDICT A LINE: so each row of the weights table well be of size:
- *           (BHR_B + 1) * LI
+ * PREDICT A LINE: instead of having a bigram with "(BHR_B + 1) * LI" bits per line
+ *  we have "LI" banks of bits "(BHR_B + 1)""
  */
 
 template <
@@ -22,18 +22,21 @@ template <
     u64 CTR_B = 8,
     u64 THRESHOLD = 83,
     u64 LINE_B = 2>
-struct perceptron_simpleL : predictor
+struct perceptron_simpleL_banks : predictor
 {
     static constexpr u64 LI = 1 << LINE_B;
     static constexpr u64 PHT_ROWS = 1 << PC_B;
     static constexpr u64 RBITS = CTR_B + std::bit_width(BHR_B);
 
-    // Table of weight vectors (each entry has LI weight vectors of size BHR_B + 1)
-    ram<arr<val<CTR_B, i64>, (BHR_B + 1) * LI>, PHT_ROWS> weights;
+    // Banked weight tables: one table per cacheline instruction slot
+    struct Bank
+    {
+        ram<arr<val<CTR_B, i64>, BHR_B + 1>, PHT_ROWS> weights;
+        arr<reg<CTR_B, i64>, BHR_B + 1> reg_weights;
+    } site[LI];
 
     // Registers to store state between prediction and update
     reg<PC_B> reg_index;
-    arr<reg<CTR_B, i64>, (BHR_B + 1) * LI> reg_weights;
     arr<reg<RBITS, i64>, LI> reg_y;
     arr<reg<1>, LI> pred_taken;
     reg<PC_B> block_pc;
@@ -51,31 +54,40 @@ struct perceptron_simpleL : predictor
         // Reset branch counter
         num_branches = 0;
 
-        inst_pc.fanout(hard<2> {});
+        inst_pc.fanout(hard<3> {});
 
         // Save line PC
         block_pc = inst_pc >> (2 + LINE_B);
 
-        // Hash the PC to get the table index (unbanked uses simple shifted PC)
-        val<PC_B> index = val<PC_B> { inst_pc >> (2 + LINE_B) };
+        // Hash the PC to get the table index using fold_xor
+        val<PC_B> index = (inst_pc >> 2).make_array(val<PC_B> {}).fold_xor();
+        index.fanout(hard<LI + 1> {});
         reg_index = index;
 
-        // Read the weight vectors for the entire line from RAM
-        arr<val<CTR_B, i64>, (BHR_B + 1) * LI> raw_weights = weights.read(index);
-        raw_weights.fanout(hard<2> {});
-        reg_weights = raw_weights;
+        // Read the weight vector from each bank in parallel
+        for (u64 i = 0; i < LI; i++)
+        {
+            if (i == LI - 1)
+            {
+                site[i].reg_weights = site[i].weights.read(index.fo1());
+            }
+            else
+            {
+                site[i].reg_weights = site[i].weights.read(index);
+            }
+        }
 
         // Compute dot products for all slots in the block
         arr<val<RBITS, i64>, LI> y_block = [&](u64 i) {
             arr<val<CTR_B, i64>, BHR_B + 1> terms = [&](u64 j) -> val<CTR_B, i64> {
                 if (j == 0)
                 {
-                    return raw_weights[i * (BHR_B + 1)];
+                    return site[i].reg_weights[0];
                 }
                 else
                 {
                     val<1> bhr_bit = val<1> { bhr >> (j - 1) };
-                    val<CTR_B, i64> weight = raw_weights[i * (BHR_B + 1) + j];
+                    val<CTR_B, i64> weight = site[i].reg_weights[j];
                     return select(bhr_bit, weight, -weight);
                 }
             };
@@ -159,9 +171,8 @@ struct perceptron_simpleL : predictor
         update_mask.fanout(hard<2> {});
 
         val<1> performing_update = (update_mask != hard<0> {});
-        performing_update.fanout(hard<2> {});
 
-        need_extra_cycle(performing_update);
+        need_extra_cycle(performing_update.fo1());
 
         // Convert masks to bit arrays
         arr<val<1>, LI> update_bits = update_mask.fo1().make_array(val<1> {});
@@ -169,26 +180,21 @@ struct perceptron_simpleL : predictor
 
         for (u64 i = 0; i < LI; i++)
         {
-            taken_bits[i].fanout(hard<BHR_B + 1> {});
-        }
+            val<1> do_update = update_bits[i];
+            do_update.fanout(hard<2> {});
 
-        execute_if(performing_update.fo1(), [&]() {
-            arr<val<CTR_B, i64>, (BHR_B + 1) * LI> new_weights = [&](u64 k) -> val<CTR_B, i64> {
-                u64 i = k / (BHR_B + 1); // Slot index
-                u64 j = k % (BHR_B + 1); // Weight index
+            val<1> taken_bit = taken_bits[i];
+            taken_bit.fanout(hard<BHR_B + 1> {});
 
-                val<CTR_B, i64> orig_w = reg_weights[k];
-                val<1> do_update = update_bits[i];
-                val<1> taken_bit = taken_bits[i];
+            execute_if(do_update.fo1(), [&]() {
+                arr<val<CTR_B, i64>, BHR_B + 1> new_weights = [&](u64 j) -> val<CTR_B, i64> {
+                    val<CTR_B, i64> w_j = site[i].reg_weights[j];
+                    w_j.fanout(hard<2> {});
+                    val<CTR_B, i64> incr = select(w_j == hard<w_j.maxval> {}, w_j, val<CTR_B, i64> { w_j + 1 });
+                    val<CTR_B, i64> decr = select(w_j == hard<w_j.minval> {}, w_j, val<CTR_B, i64> { w_j - 1 });
 
-                val<CTR_B, i64> w_j = orig_w;
-                w_j.fanout(hard<2> {});
-                val<CTR_B, i64> incr = select(w_j == hard<w_j.maxval> {}, w_j, val<CTR_B, i64> { w_j + 1 });
-                val<CTR_B, i64> decr = select(w_j == hard<w_j.minval> {}, w_j, val<CTR_B, i64> { w_j - 1 });
+                    val<1> tk = (j == BHR_B) ? taken_bit.fo1() : taken_bit;
 
-                val<1> tk = (j == BHR_B) ? taken_bit.fo1() : taken_bit;
-
-                val<CTR_B, i64> updated_w = [&]() {
                     if (j == 0)
                     {
                         return select(tk, incr, decr);
@@ -199,12 +205,10 @@ struct perceptron_simpleL : predictor
                         val<1> same_direction = ~(tk ^ bhr_bit);
                         return select(same_direction, incr, decr);
                     }
-                }();
-
-                return select(do_update, updated_w, orig_w);
-            };
-            weights.write(reg_index, new_weights.fo1());
-        });
+                };
+                site[i].weights.write(reg_index, new_weights.fo1());
+            });
+        }
 
         // Update BHR at the very end
         val<LI> new_history = branch_taken.concat().reverse() >> (LI - num_branches);

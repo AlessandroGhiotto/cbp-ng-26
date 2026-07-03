@@ -4,6 +4,15 @@
 
 using namespace hcm;
 
+/*
+ * perceptron_simple implements a very simple perceptron predictor
+ * - take the PC and index in the table of weights
+ * - take the BHR
+ * - compute the weighted sum
+ * - see if it greater than 0
+ * - (train)
+ */
+
 template <
     u64 PC_B = 8,
     u64 BHR_B = 36,
@@ -23,7 +32,7 @@ struct perceptron_simple : predictor
     reg<RBITS, i64> reg_y;
     reg<1> reg_pred;
 
-    // Global History Register (BHR)
+    // global history
     reg<BHR_B> bhr;
 
     val<1> predict1(val<64> inst_pc)
