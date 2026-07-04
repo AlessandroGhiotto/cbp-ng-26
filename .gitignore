@@ -8,3 +8,4 @@
 /profiling/outputs/
 AGENTS.md
 **/*.out
+/traces/
