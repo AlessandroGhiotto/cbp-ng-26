@@ -1,6 +1,12 @@
 # NOTES AleGhi
 
 ```bash
+run_sweeps.py
+full_comparison.py
+full_comparison_results.csv
+```
+
+```bash
 ./compile cbp -DPREDICTOR="tutorial_00"
 ./compile cbp -DPREDICTOR="my_predictor<>"
 ./cbp ./gcc_test_trace.gz gcc_test_trace 0 40000 --format human
