@@ -4,7 +4,7 @@ import argparse
 import csv
 from pathlib import Path
 
-PROFILING_DIR = Path(__file__).resolve().parent
+PROFILING_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROFILING_DIR.parent
 sys.path.append(str(PROFILING_DIR / "lib"))
 

@@ -8,3 +8,15 @@
 /profiling/outputs/
 AGENTS.md
 **/*.out
+
+# LaTeX temporary files
+*.aux
+*.log
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+report/executive_summary.pdf
+report/Images/*-eps-converted-to.pdf

@@ -4,52 +4,33 @@ import argparse
 import csv
 from pathlib import Path
 
-PROFILING_DIR = Path(__file__).resolve().parent
+PROFILING_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROFILING_DIR.parent
 sys.path.append(str(PROFILING_DIR / "lib"))
 
 from profiling_core import run_predictor_on_multiple_traces, get_predictor_size_bits
 
-# Matched budget configs for Scalar vs Block comparison
 CONFIGS = {
     "8KB": [
-        # GAg
-        {"family": "GAg", "mode": "Scalar", "name": "gag", "expr": "gag<15,2>"},
-        {"family": "GAg", "mode": "Block", "name": "gagL", "expr": "gagL<11,2,4>"},
-        # GAp
-        {"family": "GAp", "mode": "Scalar", "name": "gap", "expr": "gap<9,6,2>"},
-        {"family": "GAp", "mode": "Block", "name": "gapL", "expr": "gapL<6,5,2,4>"},
-        # PAg
-        {"family": "PAg", "mode": "Scalar", "name": "pag", "expr": "pag<12,12,2>"},
-        {"family": "PAg", "mode": "Block", "name": "pagL", "expr": "pagL<10,11,2,4>"},
-        # PAp
-        {"family": "PAp", "mode": "Scalar", "name": "pap", "expr": "pap<8,12,6,2>"},
-        {"family": "PAp", "mode": "Block", "name": "papL", "expr": "papL<8,12,2,2,4>"},
-        # BiMode
-        {"family": "BiMode", "mode": "Scalar", "name": "bimode", "expr": "bimode<14,12,13,2>"},
-        {"family": "BiMode", "mode": "Block", "name": "bimodeL", "expr": "bimodeL<10,10,9,2,4>"},
+        {"name": "perceptron_PC8_BHR31_W8", "expr": "perceptron_simple<8,31,8,73>"},
+        {"name": "perceptron_PC7_BHR63_W8", "expr": "perceptron_simple<7,63,8,135>"},
+        {"name": "perceptron_PC9_BHR15_W8", "expr": "perceptron_simple<9,15,8,42>"},
+        {"name": "perceptron_PC8_BHR41_W6", "expr": "perceptron_simple<8,41,6,93>"},
+        {"name": "perceptronL_PC6_BHR31_W8", "expr": "perceptron_simpleL<6,31,8,73,2>"},
+        {"name": "perceptronL_PC7_BHR15_W8", "expr": "perceptron_simpleL<7,15,8,42,2>"}
     ],
     "16KB": [
-        # GAg
-        {"family": "GAg", "mode": "Scalar", "name": "gag", "expr": "gag<16,2>"},
-        {"family": "GAg", "mode": "Block", "name": "gagL", "expr": "gagL<12,2,4>"},
-        # GAp
-        {"family": "GAp", "mode": "Scalar", "name": "gap", "expr": "gap<10,6,2>"},
-        {"family": "GAp", "mode": "Block", "name": "gapL", "expr": "gapL<6,6,2,4>"},
-        # PAg
-        {"family": "PAg", "mode": "Scalar", "name": "pag", "expr": "pag<15,12,2>"},
-        {"family": "PAg", "mode": "Block", "name": "pagL", "expr": "pagL<11,12,2,4>"},
-        # PAp
-        {"family": "PAp", "mode": "Scalar", "name": "pap", "expr": "pap<8,13,7,2>"},
-        {"family": "PAp", "mode": "Block", "name": "papL", "expr": "papL<8,13,3,2,4>"},
-        # BiMode
-        {"family": "BiMode", "mode": "Scalar", "name": "bimode", "expr": "bimode<15,14,14,2>"},
-        {"family": "BiMode", "mode": "Block", "name": "bimodeL", "expr": "bimodeL<11,12,10,2,4>"},
+        {"name": "perceptron_PC9_BHR31_W8", "expr": "perceptron_simple<9,31,8,73>"},
+        {"name": "perceptron_PC8_BHR63_W8", "expr": "perceptron_simple<8,63,8,135>"},
+        {"name": "perceptron_PC9_BHR47_W5", "expr": "perceptron_simple<9,47,5,105>"},
+        {"name": "perceptron_PC9_BHR41_W6", "expr": "perceptron_simple<9,41,6,93>"},
+        {"name": "perceptronL_PC7_BHR31_W8", "expr": "perceptron_simpleL<7,31,8,73,2>"},
+        {"name": "perceptronL_PC8_BHR15_W8", "expr": "perceptron_simpleL<8,15,8,42,2>"}
     ]
 }
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare Scalar vs Block predictors per family")
+    parser = argparse.ArgumentParser(description="Sweep Perceptron parameters under fixed budget")
     parser.add_argument("--tracedir", default=str(REPO_ROOT / "traces"), help="Directory containing traces")
     parser.add_argument("--outdir", default=str(PROFILING_DIR / "outputs"), help="Output directory")
     parser.add_argument("--warmup", type=int, default=1000000)
@@ -61,7 +42,7 @@ def main():
     tracedir = Path(args.tracedir).resolve()
     outdir = Path(args.outdir).resolve()
     outdir.mkdir(parents=True, exist_ok=True)
-    csv_path = outdir / "family_comparison_results.csv"
+    csv_path = outdir / "perceptron_comparison_results.csv"
 
     # Select traces
     extremes_file = outdir / "selected_extreme_traces.txt"
@@ -85,23 +66,22 @@ def main():
             print("Error: No traces found for simulation.")
             sys.exit(1)
 
-    print(f"Running Family comparison on traces: {[t.name for t in traces]}")
+    print(f"Running Perceptron sweep on traces: {[t.name for t in traces]}")
     results = []
 
     if not args.skip_sim:
         for budget in ["8KB", "16KB"]:
-            print(f"\n--- Family {budget} Comparisons ---")
+            print(f"\n--- Perceptron {budget} Sweeps ---")
             for cfg in CONFIGS[budget]:
                 expr = cfg["expr"]
                 size_bits = get_predictor_size_bits(expr)
-                print(f"Running {cfg['family']} ({cfg['mode']}) -> {expr}...")
+                print(f"Running {cfg['name']} ({expr}) [Size: {size_bits} bits]...")
                 try:
                     run_results = run_predictor_on_multiple_traces(expr, traces, args.warmup, args.measure, args.jobs)
                     for trace_name, metrics in run_results.items():
                         results.append({
                             "budget": budget,
-                            "family": cfg["family"],
-                            "mode": cfg["mode"],
+                            "name": cfg["name"],
                             "expr": expr,
                             "size_bits": size_bits,
                             "trace": trace_name,
@@ -126,14 +106,14 @@ def main():
             results = [dict(row) for row in reader]
         print(f"\nLoaded cached results from {csv_path}")
 
-    # Print family summary
-    print("\n" + "="*90)
-    print(f"{'Budget':<8} | {'Family':<8} | {'Mode':<8} | {'Trace':<16} | {'MPKI':<8} | {'IPC':<8} | {'VFS Score':<10}")
-    print("="*90)
-    results.sort(key=lambda x: (x["budget"], x["family"], x["mode"], x["trace"]))
+    # Print summary table
+    print("\n" + "="*80)
+    print(f"{'Budget':<8} | {'Predictor Name':<28} | {'Trace':<16} | {'MPKI':<8} | {'VFS Score':<10}")
+    print("="*80)
+    results.sort(key=lambda x: (x["budget"], x["name"], x["trace"]))
     for r in results:
-        print(f"{r['budget']:<8} | {r['family']:<8} | {r['mode']:<8} | {r['trace']:<16} | {float(r['mpki']):.4f} | {float(r['ipc']):.4f} | {float(r['vfs']):.6f}")
-    print("="*90)
+        print(f"{r['budget']:<8} | {r['name']:<28} | {r['trace']:<16} | {float(r['mpki']):.4f} | {float(r['vfs']):.6f}")
+    print("="*80)
 
 if __name__ == "__main__":
     main()

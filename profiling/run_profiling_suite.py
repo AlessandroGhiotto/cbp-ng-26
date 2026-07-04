@@ -63,7 +63,7 @@ def best_row(rows: list[dict[str, str]], predicate=None) -> dict[str, str] | Non
 
 
 def run_script(script_name: str, args: list[str]) -> None:
-    script_path = PROFILE_DIR / script_name
+    script_path = PROFILE_DIR / "scripts" / script_name
     proc = subprocess.run([sys.executable, str(script_path), *args], cwd=REPO_ROOT)
     if proc.returncode != 0:
         raise RuntimeError(f"{script_name} failed with exit code {proc.returncode}")
