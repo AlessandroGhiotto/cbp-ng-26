@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Paths
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_OUT_DIR = REPO_ROOT / "profiling" / "outputs"
 DEFAULT_TRACE = REPO_ROOT / "gcc_test_trace.gz"
 APPTAINER_SIF = Path("/home/ghi/Documents/HPC-PoliMi/1-AMSC/amsc_mk_2025.sif")

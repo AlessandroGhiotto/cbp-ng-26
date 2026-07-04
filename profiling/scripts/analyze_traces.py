@@ -8,13 +8,13 @@ import shutil
 from pathlib import Path
 
 # Setup paths
-PROFILING_DIR = Path(__file__).resolve().parent
+PROFILING_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROFILING_DIR.parent
 sys.path.append(str(PROFILING_DIR / "lib"))
 
 from profiling_core import run_cmd
 
-TRACE_ANALYZER_BIN = PROFILING_DIR / "trace_analyzer"
+TRACE_ANALYZER_BIN = Path(__file__).resolve().parent / "trace_analyzer"
 
 def analyze_single_trace(trace_path: Path, warmup: int, measure: int) -> dict:
     trace_name = trace_path.stem

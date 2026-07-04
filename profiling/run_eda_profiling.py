@@ -15,9 +15,9 @@ def run_script(script_name: str, args_list: list[str]) -> None:
     print(f"\n==================================================")
     print(f"Running {script_name}...")
     print(f"==================================================")
-    cmd = f"python3 {PROFILING_DIR}/{script_name} " + " ".join(args_list)
+    cmd = f"python3 {PROFILING_DIR}/scripts/{script_name} " + " ".join(args_list)
     # Redirect output to console
-    subprocess.run(["python3", str(PROFILING_DIR / script_name)] + args_list, cwd=REPO_ROOT)
+    subprocess.run(["python3", str(PROFILING_DIR / "scripts" / script_name)] + args_list, cwd=REPO_ROOT)
 
 def main():
     parser = argparse.ArgumentParser(description="Master coordinator for CBP-NG EDA Profiling Suite")
@@ -44,7 +44,7 @@ def main():
     print("\n==================================================")
     print("Step 1: Running Trace Workload Analysis (EDA)...")
     print("==================================================")
-    subprocess.run(["python3", str(PROFILING_DIR / "analyze_traces.py"), 
+    subprocess.run(["python3", str(PROFILING_DIR / "scripts" / "analyze_traces.py"), 
                     "--tracedir", args.tracedir, 
                     "--outdir", args.outdir,
                     "--warmup", str(args.warmup),

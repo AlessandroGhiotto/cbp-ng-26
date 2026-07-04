@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-GAG vs GAP Parameter Space Explorer for CBP-NG.
-Compares the GAG (pure global history) and GAP (PC-portioned global history)
-predictors under identical PHT budgets (B = BHR_B + PC_B).
+gagL vs gapL Parameter Space Explorer.
+Compares block-based gagL and gapL predictors under identical index budgets.
 Generates CSV reports and visual scaling plots.
 """
 
@@ -18,7 +17,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Paths
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_OUT_DIR = REPO_ROOT / "profiling" / "outputs"
 DEFAULT_TRACE = REPO_ROOT / "gcc_test_trace.gz"
 
@@ -34,7 +33,11 @@ def calculate_vfs_score(ipc: float, cpi: float, epi: float) -> float:
     WPI0 = IPCcbp0 * CPIcbp0
     WPI = ipc * cpi
     speedup = (ipc / IPCcbp0) * (1.0 + WPI0) / (1.0 + WPI)
-    LAMBDA = 1.0 / (1.0 + WPI0 / 2.0) - cbp_energy_ratio
+    offset = 1.0 + WPI0 / 2.0
+    # Since we are predicting 16 instructions per cycle (superscalar),
+    # the CPI will naturally scale differently. However, HARCOM handles this
+    # inside its superuser. We use the standard VFS formula provided.
+    LAMBDA = 1.0 / offset - cbp_energy_ratio
     normalizedEPI = ((epi / EPIcbp0) * cbp_energy_ratio + LAMBDA * speedup**GAMMA) * (
         1.0 + WPI / 2.0
     )
@@ -48,7 +51,6 @@ def calculate_vfs_score(ipc: float, cpi: float, epi: float) -> float:
 
 
 def run_predictor(expr: str, trace: Path, warmup: int, measure: int) -> dict:
-    # Compile
     comp_proc = subprocess.run(
         ["bash", "-lc", f'./compile cbp -DPREDICTOR="{expr}"'],
         cwd=REPO_ROOT,
@@ -58,7 +60,6 @@ def run_predictor(expr: str, trace: Path, warmup: int, measure: int) -> dict:
     if comp_proc.returncode != 0:
         raise RuntimeError(f"Compilation failed for {expr}: {comp_proc.stderr}")
 
-    # Simulate
     sim_proc = subprocess.run(
         ["./cbp", str(trace), "test", str(warmup), str(measure)],
         cwd=REPO_ROOT,
@@ -68,7 +69,6 @@ def run_predictor(expr: str, trace: Path, warmup: int, measure: int) -> dict:
     if sim_proc.returncode != 0:
         raise RuntimeError(f"Simulation failed for {expr}: {sim_proc.stderr}")
 
-    # Parse simulation output
     lines = [l.strip() for l in sim_proc.stdout.splitlines() if l.strip()]
     csv_line = lines[-1]
     parts = csv_line.split(",")
@@ -95,7 +95,6 @@ def run_predictor(expr: str, trace: Path, warmup: int, measure: int) -> dict:
     cycles += extra
 
     IPC = instr / cycles
-
     p2_to_exec_stages = 9.0
     CPI = MPI * (p2_to_exec_stages + p2_lat - max(1, min(p1_lat, p2_lat)))
     vfs = calculate_vfs_score(IPC, CPI, epi)
@@ -104,7 +103,7 @@ def run_predictor(expr: str, trace: Path, warmup: int, measure: int) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Detailed GAG vs GAP Parameter Sweep")
+    parser = argparse.ArgumentParser(description="Sweep gagL vs gapL Parameters")
     parser.add_argument("--warmup", type=int, default=100000)
     parser.add_argument("--measure", type=int, default=1000000)
     parser.add_argument("--outdir", default=str(DEFAULT_OUT_DIR))
@@ -114,7 +113,7 @@ def main():
 
     out_dir = Path(args.outdir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = out_dir / "gag_vs_gap_results.csv"
+    csv_path = out_dir / "gagL_vs_gapL_results.csv"
 
     results = []
 
@@ -124,29 +123,33 @@ def main():
             print(f"Error: Trace not found at {trace_path}")
             sys.exit(1)
 
-        # Define GAG vs GAP configurations
-        # We sweep total index bits B from 6 to 12.
-        # PC_B = 0 means GAG. PC_B > 0 means GAP.
+        # Sweeping total index bits B from 6 to 12
         configs = []
         for B in [6, 8, 10, 12]:
-            # GAG (PC_B = 0)
+            # gagL (PC_B = 0)
             configs.append(
-                {"type": "gag", "expr": f"gag<{B},2>", "B": B, "PC_B": 0, "BHR_B": B}
+                {
+                    "type": "gagL",
+                    "expr": f"gagL<{B},2,4>",
+                    "B": B,
+                    "PC_B": 0,
+                    "BHR_B": B,
+                }
             )
-            # GAP (PC_B = 2, 4, 6, ...)
+            # gapL (PC_B = 2, 4, 6, ...)
             for pc in range(2, B, 2):
                 bhr = B - pc
                 configs.append(
                     {
-                        "type": "gap",
-                        "expr": f"gap<{bhr},{pc},2>",
+                        "type": "gapL",
+                        "expr": f"gapL<{bhr},{pc},2,4>",
                         "B": B,
                         "PC_B": pc,
                         "BHR_B": bhr,
                     }
                 )
 
-        print(f"Sweeping {len(configs)} GAG vs GAP configurations...")
+        print(f"Sweeping {len(configs)} gagL vs gapL configurations...")
         for cfg in configs:
             expr = cfg["expr"]
             print(
@@ -199,36 +202,28 @@ def main():
                     }
                 )
 
-    # Let's generate a clean story plot comparing GAG and GAP
+    # Generate 2x2 comparison plots
     print("\nGenerating comparison plots...")
-
-    # We will generate a figure with 3 line plots:
-    # 1. MPI vs Total index bits B for different PC_B choices
-    # We will generate a figure with a 2x2 grid of plots:
-    # 1. MPI vs B for different PC_B choices
-    # 2. IPC vs B
-    # 3. EPI (fJ) vs B
-    # 4. Bar chart showing optimal split for B = 10 bits
     fig, axs = plt.subplots(2, 2, figsize=(16, 14))
     fig.suptitle(
-        "GAG vs GAP: Architectural Indexing Space Sweep",
+        "gagL vs gapL: Superscalar Indexing Space Sweep",
         fontsize=18,
         fontweight="bold",
         y=0.98,
     )
     ax1, ax2, ax3, ax4 = axs.flatten()
 
-    # 1. Plot MPI vs B for different PC_B
     pc_splits = [0, 2, 4, 6]
     colors = ["#e6194B", "#3cb44b", "#4363d8", "#f58231"]
 
+    # 1. MPI vs B
     for idx, pc in enumerate(pc_splits):
         subset = [r for r in results if r["PC_B"] == pc]
         subset = sorted(subset, key=lambda x: x["B"])
         if subset:
             b_vals = [r["B"] for r in subset]
-            mpi_vals = [r["mpki"] / 10.0 for r in subset]  # % MPI
-            label = "GAG (PC_B=0)" if pc == 0 else f"GAP (PC_B={pc})"
+            mpi_vals = [r["mpki"] / 10.0 for r in subset]
+            label = "gagL (PC_B=0)" if pc == 0 else f"gapL (PC_B={pc})"
             ax1.plot(
                 b_vals,
                 mpi_vals,
@@ -249,14 +244,14 @@ def main():
     ax1.grid(True, linestyle=":", alpha=0.6, color="#bbbbbb")
     ax1.legend()
 
-    # 2. Plot IPC vs B for different PC_B
+    # 2. IPC vs B
     for idx, pc in enumerate(pc_splits):
         subset = [r for r in results if r["PC_B"] == pc]
         subset = sorted(subset, key=lambda x: x["B"])
         if subset:
             b_vals = [r["B"] for r in subset]
             ipc_vals = [r["ipc"] for r in subset]
-            label = "GAG (PC_B=0)" if pc == 0 else f"GAP (PC_B={pc})"
+            label = "gagL (PC_B=0)" if pc == 0 else f"gapL (PC_B={pc})"
             ax2.plot(
                 b_vals,
                 ipc_vals,
@@ -279,14 +274,14 @@ def main():
     ax2.grid(True, linestyle=":", alpha=0.6, color="#bbbbbb")
     ax2.legend()
 
-    # 3. Plot EPI vs B for different PC_B
+    # 3. Energy vs B
     for idx, pc in enumerate(pc_splits):
         subset = [r for r in results if r["PC_B"] == pc]
         subset = sorted(subset, key=lambda x: x["B"])
         if subset:
             b_vals = [r["B"] for r in subset]
             epi_vals = [r["epi"] for r in subset]
-            label = "GAG (PC_B=0)" if pc == 0 else f"GAP (PC_B={pc})"
+            label = "gagL (PC_B=0)" if pc == 0 else f"gapL (PC_B={pc})"
             ax3.plot(
                 b_vals,
                 epi_vals,
@@ -307,7 +302,7 @@ def main():
     ax3.grid(True, linestyle=":", alpha=0.6, color="#bbbbbb")
     ax3.legend()
 
-    # 4. Bar plot for a fixed budget (B = 10 bits)
+    # 4. Bar plot for fixed budget (B = 10 bits)
     fixed_b = 10
     subset_b = [r for r in results if r["B"] == fixed_b]
     subset_b = sorted(subset_b, key=lambda x: x["PC_B"])
@@ -316,7 +311,6 @@ def main():
         bar_labels = [f"PC={r['PC_B']}\nH={r['BHR_B']}" for r in subset_b]
         bar_mpi = [r["mpki"] / 10.0 for r in subset_b]
 
-        # Color gradient to show shifting from global history (pure red) to PC portion (blue)
         bar_colors = ["#e6194B", "#c0392b", "#8e44ad", "#3498db", "#2ecc71"][
             : len(subset_b)
         ]
@@ -360,7 +354,7 @@ def main():
             )
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plot_path = out_dir / "gag_vs_gap_exploration.png"
+    plot_path = out_dir / "gagL_vs_gapL_exploration.png"
     plt.savefig(plot_path, dpi=150)
     print(f"Saved exploration plot: {plot_path}")
     plt.close()

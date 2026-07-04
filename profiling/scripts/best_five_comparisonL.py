@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-GAG vs GAP vs PAG vs PAP: Best-of-Class Comparison.
-Selects the VFS-optimal configurations of GAG, GAP, PAG, and PAP
-and compares them head-to-head alongside the Championship Baselines (Reference & TAGE).
-Generates a 4-panel visual comparison plot.
+Superscalar Predictor Best-of-Class Comparison.
+Selects the VFS-optimal block-based configurations of gagL, gapL, pagL, papL, and bimodeL
+and compares them head-to-head alongside the software reference baseline.
+Generates a 4-panel comparison plot.
 """
 
 import csv
@@ -14,7 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Paths
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_OUT_DIR = REPO_ROOT / "profiling" / "outputs"
 
 
@@ -23,22 +23,21 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Load sweep results
-    gag_gap_csv = out_dir / "gag_vs_gap_results.csv"
-    pag_pap_csv = out_dir / "pag_vs_pap_results.csv"
-    bimode_csv = out_dir / "bimode_sweep_results.csv"
-    lxor_csv = out_dir / "lxor_sweep_results.csv"
+    gagl_gapl_csv = out_dir / "gagL_vs_gapL_results.csv"
+    pagl_papl_csv = out_dir / "pagL_vs_papL_results.csv"
+    bimodell_csv = out_dir / "bimodeL_sweep_results.csv"
 
     results = {}
 
-    # Read GAG and GAP
-    if gag_gap_csv.exists():
-        with open(gag_gap_csv, "r") as f:
+    # Read gagL and gapL
+    if gagl_gapl_csv.exists():
+        with open(gagl_gapl_csv, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 expr = row["expr"]
-                if expr in ["gag<12,2>", "gap<6,6,2>"]:
+                if expr in ["gagL<6,2,4>", "gapL<2,4,2,4>"]:
                     results[expr] = {
-                        "name": "GAG" if "gag" in expr else "GAP",
+                        "name": "gagL" if "gagL" in expr else "gapL",
                         "expr": expr,
                         "ipc": float(row["ipc"]),
                         "mpi": float(row["mpki"]) / 10.0,
@@ -46,15 +45,15 @@ def main():
                         "vfs": float(row["vfs"]),
                     }
 
-    # Read PAG and PAP
-    if pag_pap_csv.exists():
-        with open(pag_pap_csv, "r") as f:
+    # Read pagL and papL
+    if pagl_papl_csv.exists():
+        with open(pagl_papl_csv, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 expr = row["expr"]
-                if expr in ["pag<6,8,2>", "pap<2,8,8,2>"]:
+                if expr in ["pagL<6,8,2,4>", "papL<2,8,6,2,4>"]:
                     results[expr] = {
-                        "name": "PAG" if "pag" in expr else "PAP",
+                        "name": "pagL" if "pagL" in expr else "papL",
                         "expr": expr,
                         "ipc": float(row["ipc"]),
                         "mpi": float(row["mpki"]) / 10.0,
@@ -62,15 +61,15 @@ def main():
                         "vfs": float(row["vfs"]),
                     }
 
-    # Read Bi-Mode
-    if bimode_csv.exists():
-        with open(bimode_csv, "r") as f:
+    # Read Bi-Mode_L
+    if bimodell_csv.exists():
+        with open(bimodell_csv, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 expr = row["expr"]
-                if expr == "bimode<10,10,8,2>":
+                if expr == "bimodeL<8,10,8,2,4>":
                     results[expr] = {
-                        "name": "Bi-Mode",
+                        "name": "bimodeL",
                         "expr": expr,
                         "ipc": float(row["ipc"]),
                         "mpi": float(row["mpki"]) / 10.0,
@@ -78,82 +77,57 @@ def main():
                         "vfs": float(row["vfs"]),
                     }
 
-    # Read LXOR
-    if lxor_csv.exists():
-        with open(lxor_csv, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                expr = row["expr"]
-                if expr == "lxor<10,4>":
-                    results[expr] = {
-                        "name": "LXOR",
-                        "expr": expr,
-                        "ipc": float(row["ipc"]),
-                        "mpi": float(row["mpki"]) / 10.0,
-                        "epi": float(row["epi"]),
-                        "vfs": float(row["vfs"]),
-                    }
-
-    # Verify we got the data
+    # Verify and use fallbacks if missing
     required = [
-        "gag<12,2>",
-        "gap<6,6,2>",
-        "pag<6,8,2>",
-        "pap<2,8,8,2>",
-        "bimode<10,10,8,2>",
-        "lxor<10,4>",
+        "gagL<6,2,4>",
+        "gapL<2,4,2,4>",
+        "pagL<6,8,2,4>",
+        "papL<2,8,6,2,4>",
+        "bimodeL<8,10,8,2,4>",
     ]
     missing = [r for r in required if r not in results]
     if missing:
         print(f"Warning: Missing sweep data for {missing}. Using hardcoded fallbacks.")
         fallback = {
-            "gag<12,2>": {
-                "name": "GAG",
-                "expr": "gag<12,2>",
-                "ipc": 0.9866,
-                "mpi": 0.8294,
-                "epi": 132.0,
-                "vfs": 0.2297,
+            "gagL<6,2,4>": {
+                "name": "gagL",
+                "expr": "gagL<6,2,4>",
+                "ipc": 5.0664,
+                "mpi": 0.8602,
+                "epi": 87.0,
+                "vfs": 0.7765,
             },
-            "gap<6,6,2>": {
-                "name": "GAP",
-                "expr": "gap<6,6,2>",
-                "ipc": 0.9874,
-                "mpi": 0.7748,
-                "epi": 131.0,
-                "vfs": 0.2309,
+            "gapL<2,4,2,4>": {
+                "name": "gapL",
+                "expr": "gapL<2,4,2,4>",
+                "ipc": 5.0864,
+                "mpi": 0.7844,
+                "epi": 87.0,
+                "vfs": 0.7937,
             },
-            "pag<6,8,2>": {
-                "name": "PAG",
-                "expr": "pag<6,8,2>",
-                "ipc": 0.9645,
-                "mpi": 0.9665,
-                "epi": 72.0,
-                "vfs": 0.2233,
+            "pagL<6,8,2,4>": {
+                "name": "pagL",
+                "expr": "pagL<6,8,2,4>",
+                "ipc": 2.4312,
+                "mpi": 1.0664,
+                "epi": 156.0,
+                "vfs": 0.4781,
             },
-            "pap<2,8,8,2>": {
-                "name": "PAP",
-                "expr": "pap<2,8,8,2>",
-                "ipc": 0.9763,
-                "mpi": 0.8542,
-                "epi": 90.0,
-                "vfs": 0.2276,
+            "papL<2,8,6,2,4>": {
+                "name": "papL",
+                "expr": "papL<2,8,6,2,4>",
+                "ipc": 2.5489,
+                "mpi": 0.7894,
+                "epi": 151.0,
+                "vfs": 0.5197,
             },
-            "bimode<10,10,8,2>": {
-                "name": "Bi-Mode",
-                "expr": "bimode<10,10,8,2>",
-                "ipc": 0.9803,
-                "mpi": 0.7042,
-                "epi": 127.0,
-                "vfs": 0.2308,
-            },
-            "lxor<10,4>": {
-                "name": "LXOR",
-                "expr": "lxor<10,4>",
-                "ipc": 0.9717,
-                "mpi": 0.9312,
-                "epi": 161.0,
-                "vfs": 0.2245,
+            "bimodeL<8,10,8,2,4>": {
+                "name": "bimodeL",
+                "expr": "bimodeL<8,10,8,2,4>",
+                "ipc": 4.7450,
+                "mpi": 0.6882,
+                "epi": 267.0,
+                "vfs": 0.7828,
             },
         }
         for m in missing:
@@ -173,34 +147,29 @@ def main():
         },
         # Our Best Predictors
         {
-            **results["gag<12,2>"],
+            **results["gagL<6,2,4>"],
             "is_baseline": False,
-            "name": f"GAG\n{results['gag<12,2>']['expr']}",
+            "name": f"gagL\n{results['gagL<6,2,4>']['expr']}",
         },
         {
-            **results["gap<6,6,2>"],
+            **results["gapL<2,4,2,4>"],
             "is_baseline": False,
-            "name": f"GAP\n{results['gap<6,6,2>']['expr']}",
+            "name": f"gapL\n{results['gapL<2,4,2,4>']['expr']}",
         },
         {
-            **results["pag<6,8,2>"],
+            **results["pagL<6,8,2,4>"],
             "is_baseline": False,
-            "name": f"PAG\n{results['pag<6,8,2>']['expr']}",
+            "name": f"pagL\n{results['pagL<6,8,2,4>']['expr']}",
         },
         {
-            **results["pap<2,8,8,2>"],
+            **results["papL<2,8,6,2,4>"],
             "is_baseline": False,
-            "name": f"PAP\n{results['pap<2,8,8,2>']['expr']}",
+            "name": f"papL\n{results['papL<2,8,6,2,4>']['expr']}",
         },
         {
-            **results["bimode<10,10,8,2>"],
+            **results["bimodeL<8,10,8,2,4>"],
             "is_baseline": False,
-            "name": f"Bi-Mode\n{results['bimode<10,10,8,2>']['expr']}",
-        },
-        {
-            **results["lxor<10,4>"],
-            "is_baseline": False,
-            "name": f"LXOR\n{results['lxor<10,4>']['expr']}",
+            "name": f"bimodeL\n{results['bimodeL<8,10,8,2,4>']['expr']}",
         },
     ]
 
@@ -210,21 +179,16 @@ def main():
     epi_vals = [r["epi"] for r in comparison_list]
     vfs_vals = [r["vfs"] if r["expr"] != "reference" else 0.0 for r in comparison_list]
 
-    # Color coding: grey for baselines, distinctive colors for our predictors
-    colors = [
-        "#7f7f7f",
-        "#4A90E2",
-        "#50E3C2",
-        "#F5A623",
-        "#E284B3",
-        "#A890E2",
-        "#7ED321",
-    ]
+    # Color coding
+    colors = ["#7f7f7f", "#4A90E2", "#50E3C2", "#F5A623", "#E284B3", "#A890E2"]
 
     # Create 2x2 grid of plots
     fig, axs = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle(
-        "Best-of-Class Head-to-Head Comparison", fontsize=18, fontweight="bold", y=0.98
+        "Best-of-Class Superscalar (Block) Predictors Comparison",
+        fontsize=18,
+        fontweight="bold",
+        y=0.98,
     )
     ax1, ax2, ax3, ax4 = axs.flatten()
 
@@ -273,8 +237,7 @@ def main():
         alpha=0.85,
         width=0.55,
     )
-    style_bar_axis(ax2, "Instructions Per Cycle", "IPC")
-    ax2.set_ylim(0.9, 1.0)  # Zoom in on IPC since it varies in a tight range
+    style_bar_axis(ax2, "Instructions Per Cycle (Fetch Width = 16)", "IPC")
     for bar in bars2:
         h = bar.get_height()
         ax2.annotate(
@@ -350,7 +313,7 @@ def main():
             )
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plot_path = out_dir / "best_four_comparison.png"
+    plot_path = out_dir / "best_five_comparisonL.png"
     plt.savefig(plot_path, dpi=150)
     print(f"Saved comparison plot: {plot_path}")
     plt.close()

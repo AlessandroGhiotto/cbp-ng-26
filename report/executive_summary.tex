@@ -1,0 +1,234 @@
+% A LaTeX template for EXECUTIVE SUMMARY of the MSc Thesis submissions to 
+% Politecnico di Milano (PoliMi) - School of Industrial and Information Engineering
+%
+% S. Bonetti, A. Gruttadauria, G. Mescolini, A. Zingaro
+% e-mail: template-tesi-ingind@polimi.it
+%
+% Last Revision: October 2021
+%
+% Copyright 2021 Politecnico di Milano, Italy. NC-BY
+
+\documentclass[11pt,a4paper,twocolumn]{article}
+\pdfminorversion=7
+
+%------------------------------------------------------------------------------
+%	REQUIRED PACKAGES AND CONFIGURATIONS
+%------------------------------------------------------------------------------
+% PACKAGES FOR TITLES
+\usepackage{titlesec}
+\usepackage{color}
+
+% PACKAGES FOR LANGUAGE AND FONT
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc} % Font encoding
+
+% PACKAGES FOR IMAGES
+\usepackage{graphicx}
+\graphicspath{{Images/}} % Path for images' folder
+\usepackage{eso-pic} % For the background picture on the title page
+\usepackage{subfig} % Numbered and caption subfigures using \subfloat
+\usepackage{caption} % Coloured captions
+\usepackage{transparent}
+
+% STANDARD MATH PACKAGES
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage[overload]{empheq}  % For braced-style systems of equations
+
+% PACKAGES FOR TABLES
+\usepackage{tabularx}
+\usepackage{longtable} % tables that can span several pages
+\usepackage{colortbl}
+
+% PACKAGES FOR ALGORITHMS (PSEUDO-CODE)
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% PACKAGES FOR REFERENCES & BIBLIOGRAPHY
+\usepackage[colorlinks=true,linkcolor=black,anchorcolor=black,citecolor=black,filecolor=black,menucolor=black,runcolor=black,urlcolor=black]{hyperref} % Adds clickable links at references
+\usepackage{cleveref}
+\usepackage[square, numbers, sort&compress]{natbib} % Square brackets, citing references with numbers, citations sorted by appearance in the text and compressed
+\bibliographystyle{plain} % You may use a different style adapted to your field
+
+% PACKAGES FOR THE APPENDIX
+\usepackage{appendix}
+
+% PACKAGES FOR ITEMIZE & ENUMERATES 
+\usepackage{enumitem}
+
+% OTHER PACKAGES
+\usepackage{amsthm,thmtools,xcolor} % Coloured "Theorem"
+\usepackage{comment} % Comment part of code
+\usepackage{fancyhdr} % Fancy headers and footers
+\usepackage{lipsum} % Insert dummy text
+\usepackage{tcolorbox} % Create coloured boxes (e.g. the one for the key-words)
+\usepackage{stfloats} % Correct position of the tables
+
+%-------------------------------------------------------------------------
+%	NEW COMMANDS DEFINED
+%-------------------------------------------------------------------------
+\newcommand{\bea}{\begin{eqnarray}} % Shortcut for equation arrays
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\e}[1]{\times 10^{#1}}  % Powers of 10 notation
+\newcommand{\mathbbm}[1]{\text{\usefont{U}{bbm}{m}{n}#1}} % From mathbbm.sty
+\newcommand{\pdev}[2]{\frac{\partial#1}{\partial#2}}
+
+%----------------------------------------------------------------------------
+%	ADD YOUR CONFIGURATION
+%----------------------------------------------------------------------------
+\input{Configuration_files/config}
+
+% Insert here the info that will be displayed into your Title page 
+% -> title of your work
+\renewcommand{\title}{Design and Optimization of a High-Performance and Energy-Efficient Branch Predictor in HARCOM}
+% -> author name and surname
+\renewcommand{\author}{Roberto Di Lauro, Alessandro Ghiotto}
+% -> MSc course
+\newcommand{\course}{High-Performance Computing Engineering}
+% -> advisor name and surname
+\newcommand{\advisor}{Marco Ronzani PHD}
+% -> co-advisor name and surname
+\newcommand{\firstcoadvisor}{Prof. Cristina Silvano} % insert if any otherwise comment
+% -> academic year
+\newcommand{\YEAR}{2025-2026}
+
+%-------------------------------------------------------------------------
+%	BEGIN OF YOUR DOCUMENT
+%-------------------------------------------------------------------------
+\begin{document}
+
+% This file creates the Title Page of the document
+\input{Configuration_files/title_page}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%     THESIS MAIN TEXT     %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%-----------------------------------------------------------------------------
+% INTRODUCTION
+%-----------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:introduction}
+
+In modern high-performance superscalar architectures, exploiting Instruction-Level Parallelism (ILP) relies heavily on the efficiency of the instruction fetch unit. Because deep out-of-order execution pipelines must speculatively fetch and execute instructions across conditional branch boundaries to sustain throughput, any branch misprediction incurs a significant recovery penalty. This penalty involves flushing the pipeline (reorder buffer, reservation stations) and redirecting execution, which severely degrades the Instructions Per Cycle (IPC) and increases energy overhead. Consequently, highly accurate and low-latency branch prediction is a critical design requirement for maximizing execution efficiency.
+
+The objective of this project is to evaluate the trade-offs in branch prediction architectures under tight hardware complexity constraints. Using the Hardware Complexity (HARCOM) library, we perform a comprehensive comparative study of classic branch predictors established in the literature, including global-history-based models (Gshare, GAG, GAP) and local-history-based models (PAG, PAP), alongside their line-wide extensions for block-level prediction. We explore the multi-dimensional design parameter space—varying table configurations, counter widths, and history register lengths—subject to a strict memory budget. The evaluation focuses on maximizing the Voltage-Frequency-Scaled Speedup (VFS) metric \cite{michaudvfs}, which models the net processor performance by balancing prediction accuracy (Mispredictions Per Kilo-Instruction, or MPKI), hardware latency, and energy consumption (dynamic and static Energy Per Instruction, or EPI). Under the physical timing model in HARCOM, the energy, latency, and area costs of the predictor's logic and memory components are dynamically tracked.
+
+Specifically, the VFS score evaluates three primary design dimensions:
+\begin{enumerate}
+    \item \textbf{Prediction Accuracy:} Quantified as Mispredictions Per Kilo-Instructions (MPKI), which dictates the rate of wrong-path instruction execution.
+    \item \textbf{Processor Performance (IPC):} Strongly influenced by the latencies of the two prediction stages (Stage 1 and Stage 2) within the instruction fetch pipeline.
+    \item \textbf{Energy Efficiency:} Measured as dynamic and static Energy Per Instruction (EPI) in fJ, dictated by the capacitance, access frequencies, and leakage currents of the predictor's register arrays and SRAM tables.
+\end{enumerate}
+
+The VFS metric is computed using the CPU speedup ($S$) and the normalized EPI. The processor speedup is defined as:
+\begin{equation}
+\label{eq:speedup}
+S = \frac{\text{IPC}_{\text{cbp}}}{\text{IPC}_{\text{cbp}0}} \times \frac{1 + \text{WPI}_0}{1 + \text{WPI}}
+\end{equation}
+where $\text{WPI} = \text{IPC}_{\text{cbp}} \times \text{CPI}_{\text{cbp}}$ represents the wrong-path instructions per correct-path instruction, and the subscript $0$ indicates the reference core parameters. The normalized energy metric is formulated as:
+\begin{equation}
+\label{eq:epi}
+\begin{split}
+\text{EPI}_{\text{norm}} = {} & \left( \frac{\text{EPI}_{\text{cbp}}}{\text{EPI}_{\text{cbp}0}} \cdot r_{\text{energy}} + \Lambda \cdot S^\Gamma \right) \\
+& \times \left(1 + \frac{\text{WPI}}{2}\right)
+\end{split}
+\end{equation}
+where $r_{\text{energy}} = 0.05$ is the reference energy ratio, $\Lambda = \frac{1}{1 + \text{WPI}_0/2} - r_{\text{energy}}$, and $\Gamma = \frac{2}{\alpha - 1}$ with $\alpha = 1.625$. The final VFS score is derived as:
+\begin{equation}
+\label{eq:vfs}
+\text{VFS} = S \cdot \alpha \left( 1 - \frac{2}{1 + \sqrt{1 + \frac{\beta}{S \cdot \text{EPI}_{\text{norm}}}}} \right)
+\end{equation}
+where $\beta = \frac{4\alpha}{(\alpha - 1)^2}$.
+
+Building upon this comparative study, we propose a two-stage (two-level) branch predictor variant based on the state-of-the-art TAGE (Tagged Geometric History Length) architecture. TAGE uses multiple tagged predictor tables indexed with geometrically increasing history lengths to capture both short-term path correlations and long-term global context. To adhere to physical timing constraints, our variant decouples the prediction logic into a low-latency Stage 1 helper table for single-cycle fallback decisions and a high-capacity Stage 2 tagged TAGE structure that resolves complex branch histories over two cycles. This design optimizes the trade-off between execution latency, area cost, and accuracy, maximizing the VFS score within the budget limit. Finally, the proposed predictor is validated and evaluated across different instruction traces to assess its performance and robustness under diverse workloads.
+
+%-----------------------------------------------------------------------------
+% HARCOM FRAMEWORK AND PREDICTOR INTERFACE
+%-----------------------------------------------------------------------------
+\section{The HARCOM Framework}
+\label{sec:harcom}
+
+\begin{table*}[htbp]
+    \caption{\textbf{Optimal Configurations under 8 KB and 16 KB Storage Budgets}}
+    \centering 
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|l c l c c c c c|}
+    \hline
+    \rowcolor{bluePoli!40}
+    \textbf{Predictor} & \textbf{Budget} & \textbf{Configuration Template} & \textbf{Storage (bits)} & \textbf{MPKI} & \textbf{EPI (fJ)} & \textbf{IPC} & \textbf{VFS Score} \T\B \\
+    \hline \hline
+    \texttt{gagL}    & 8 KB  & \texttt{gagL<11,2,4>}        & 65,536  & 11.63 & 146.0 & 2.56 & 0.4881 \T \\
+    \texttt{gapL}    & 8 KB  & \texttt{gapL<6,5,2,4>}       & 65,536  & 12.99 & 149.0 & 2.52 & 0.4725 \\
+    \texttt{pagL}    & 8 KB  & \texttt{pagL<10,11,2,4>}     & 53,248  & 15.11 & 422.0 & 2.20 & 0.4101 \\
+    \texttt{papL}    & 8 KB  & \texttt{papL<8,12,2,2,4>}    & 65,536  & 14.07 & 299.0 & 2.24 & 0.4232 \\
+    \texttt{lxorL}   & 8 KB  & \texttt{lxorL<12,5,4>}       & 53,248  & 14.48 & 407.0 & 2.27 & 0.4231 \\
+    \texttt{bimodeL} & 8 KB  & \texttt{bimodeL<10,10,9,2,4>}& 65,536  & 11.36 & 458.0 & 2.46 & 0.4715 \B \\
+    \hline
+    \texttt{gagL}    & 16 KB & \texttt{gagL<12,2,4>}        & 131,072 & 11.71 & 181.0 & 2.56 & 0.4872 \T \\
+    \texttt{gapL}    & 16 KB & \texttt{gapL<6,6,2,4>}       & 131,072 & 13.00 & 185.0 & 2.52 & 0.4718 \\
+    \texttt{pagL}    & 16 KB & \texttt{pagL<11,12,2,4>}     & 110,592 & 14.85 & 346.0 & 1.56 & 0.3163 \\
+    \texttt{papL}    & 16 KB & \texttt{papL<8,13,3,2,4>}    & 131,072 & 12.87 & 321.0 & 1.58 & 0.3283 \\
+    \texttt{lxorL}   & 16 KB & \texttt{lxorL<14,5,4>}       & 114,688 & 14.47 & 426.0 & 1.59 & 0.3221 \\
+    \texttt{bimodeL} & 16 KB & \texttt{bimodeL<11,12,10,2,4>}& 131,072 & 11.32 & 501.0 & 2.47 & 0.4720 \B \\
+    \hline
+    \end{tabular}%
+    }
+    \\[5pt]
+    \caption{Comparison of the optimal configurations swept within the 8 KB (64 Kbit) and 16 KB (128 Kbit) hardware budget constraints.}
+    \label{table:budget_comparison}
+\end{table*}
+
+The simulation environment is built upon the Hardware Complexity (HARCOM) library, a cycle-level hardware modeling framework. In HARCOM, predictors are implemented by inheriting from the \texttt{predictor} structure (a C++ \texttt{struct} that defines the abstract interface). This framework allows modeling physical hardware properties including area, power, and timing by tracking three fundamental data types:
+\begin{itemize}
+    \item \textbf{\texttt{val<N>}}: Represents an $N$-bit value. Each \texttt{val} dynamically tracks its signal propagation time (latency) as it passes through combinational logic, alongside its dynamic and static energy costs.
+    \item \textbf{\texttt{reg<N>}}: Represents an $N$-bit hardware register, which persists state across clock cycles and is updated once per clock cycle.
+    \item \textbf{\texttt{ram<T, N>}}: Represents a single-port SRAM array of size $N$ with elements of type $T$. To model physical memory constraints, it permits at most one read or one write operation per cycle.
+\end{itemize}
+
+The simulation interface separates the prediction and update processes. To minimize latency overhead on the processor's critical path, the interface supports \textbf{two-stage (two-level) prediction}. In Stage 1 (\texttt{predict1}), a fast, low-latency prediction is generated. In Stage 2 (\texttt{predict2}), a slower but more accurate prediction is computed, overriding the Stage 1 choice if they disagree. 
+
+Furthermore, to support superscalar fetch blocks where multiple instructions are fetched in a single clock cycle, HARCOM enables \textbf{line prediction} (block-level prediction). The first instruction of a block is predicted via \texttt{predict1}/\texttt{predict2}, and subsequent instructions are predicted via \texttt{reuse\_predict1}/\texttt{reuse\_predict2} within the same cycle, reusing the active SRAM row read. The feedback loop is managed through the \texttt{update\_condbr} method (called after each conditional branch) and the \texttt{update\_cycle} method (called once per block to commit updates).
+
+Figure~\ref{fig:harcom_interface} illustrates the flowchart of the interface calls within the simulator.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{interface-flowchart}
+    \caption{\textbf{Flowchart of the HARCOM predictor interface callbacks.}}
+    \label{fig:harcom_interface}
+\end{figure}
+
+\section{Parameter Space Exploration under 8 KB and 16 KB Budgets}
+\label{sec:exploration}
+
+To evaluate the custom predictors under realistic hardware constraints, we conducted a systematic Design Space Exploration (DSE) under two strict memory budgets: **8 KB (64 Kbit)** and **16 KB (128 Kbit)**. These budgets are highly representative: 8 KB aligns with standard academic benchmarks (e.g., Championship Branch Prediction low-power track) for high-efficiency embedded cores, while 16 KB represents the critical physical transition threshold in HARCOM where memory latency scaling begins to dominate branch predictor performance. Simulations were performed on the \texttt{gcc\_test} trace (1M instructions, 22.82\% branch density, 194,002 conditional branches with a 57.50\% taken rate, and 266 unique conditional branch PCs). For each family, we swept parameters trading table capacity for indexing accuracy: global history length (\texttt{BHR\_B}) for \texttt{gagL}; history and PC bits (\texttt{PC\_B}) for \texttt{gapL}; LHT entries (\texttt{LOG\_GHT}/\texttt{PC\_B}) and local history (\texttt{BHR\_B}) for \texttt{pagL}, \texttt{papL} (adding PHT PC bits \texttt{PC\_B2}), and \texttt{lxorL}; and Choice (\texttt{LOG\_CHOICE}) vs. Direction (\texttt{LOG\_PHT}) table sizes for \texttt{bimodeL}. Table~\ref{table:budget_comparison} (located on page 3) summarizes the optimal configurations.
+
+\subsection{Key Design Space Insights}
+The comparison between 8 KB and 16 KB configurations highlights several crucial microarchitectural insights:
+\begin{enumerate}
+    \item \textbf{Address Sensitivity vs. Aliasing:} Combining global history with PC address bits (such as in \texttt{gapL} and \texttt{papL}) helps isolate static branch paths. Compared to purely history-indexed models like \texttt{gagL} and \texttt{pagL}, this mitigates destructive conflict aliasing in the PHT, lowering the MPKI.
+    \item \textbf{The Latency Threshold Anomaly:} A highly counter-intuitive finding is that doubling the hardware budget from 8 KB to 16 KB \textbf{degrades} performance for local-history models (\texttt{pagL}, \texttt{papL}, and \texttt{lxorL}). Although doubling the capacity reduces MPKI (e.g., from 14.07 to 12.87 for \texttt{papL}), the larger SRAM structures increase read latency. Under the HARCOM timing model, this lookup time crosses a cycle boundary (rounding up from 2 to 3 cycles), introducing pipeline fetch stalls that collapse the IPC (from 2.24 down to 1.58 for \texttt{papL}) and VFS score (from 0.42 to 0.32). This demonstrates that larger tables can be detrimental in real hardware if they increase access time.
+    \item \textbf{Throughput Dominance:} Block-based (line-wide) predictors (with suffix \texttt{L}) achieve an IPC between 2.2 and 2.6 at 8 KB by predicting up to 16 instructions per cycle in a single lookup, vastly outperforming their scalar counterparts which are restricted to an IPC of $\sim$0.49.
+\end{enumerate}
+
+Figure~\ref{fig:structured_profiling} (located on page 4) illustrates the performance scaling of the different swept configurations.
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{structured_profiling_8kb_16kb}
+    \caption{\textbf{Four-panel metrics comparison under 8 KB vs 16 KB storage constraints: VFS Speedup Score, Branch Misprediction Rate (MPKI), IPC, and Energy per Instruction (EPI).}}
+    \label{fig:structured_profiling}
+\end{figure*}
+
+\clearpage
+%---------------------------------------------------------------------------
+%  BIBLIOGRAPHY
+%---------------------------------------------------------------------------
+\nocite{kise2005bimode}
+\nocite{sutar2025towards}
+\bibliography{bibliography.bib}
+
+\end{document}
