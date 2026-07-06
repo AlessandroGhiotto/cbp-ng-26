@@ -253,7 +253,7 @@ Analyzing the simulation data (summarized for key configurations in Table~\ref{t
 \textbf{The 16 KB vs. 8 KB Budget Trade-off:} Doubling the budget from 8 KB to 16 KB consistently reduces the branch misprediction rate (e.g., \texttt{gshareL} MPKI drops from 5.25 to 4.93). However, under HARCOM's physical timing and energy model, a larger budget is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and dynamic/static energy (e.g., \texttt{tageL} EPI increases from 939.6 fJ at 8 KB to 1145.5 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.7101 to 0.6988).
 
 \begin{table*}[htbp]
-    \caption{\textbf{Block Predictor VFS Scores Per Trace Breakdown (8 KB Budget)}}
+    \caption{\textbf{Block Predictor VFS Scores Per Trace (8 KB Budget)}}
     \centering
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{|lcccccccccccc|c|}
@@ -279,7 +279,7 @@ Analyzing the simulation data (summarized for key configurations in Table~\ref{t
 \end{table*}
 
 \begin{table*}[htbp]
-    \caption{\textbf{Block Predictor VFS Scores Per Trace Breakdown (16 KB Budget)}}
+    \caption{\textbf{Block Predictor VFS Scores Per Trace (16 KB Budget)}}
     \centering
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{|lcccccccccccc|c|}
