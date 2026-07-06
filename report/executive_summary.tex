@@ -215,53 +215,42 @@ The chosen trace informations can be seen in Table~\ref{table:chosen-traces}.
 For each family, we swept parameters trading table capacity for indexing accuracy, by varying mainly the global history length (\texttt{BHR\_B}) and PC bits (\texttt{PC\_B}), which define the size of the PHT. 
 % global history length (\texttt{BHR\_B}), PC bits (\texttt{PC\_B}); LHT entries (\texttt{LOG\_GHT}/\texttt{PC\_B}) and local history (\texttt{BHR\_B}) for \texttt{pagL}, \texttt{papL} (adding PHT PC bits \texttt{PC\_B2}), and \texttt{lxorL}; and Choice (\texttt{LOG\_CHOICE}) vs. Direction (\texttt{LOG\_PHT}) table sizes for \texttt{bimodeL}. Table~\ref{table:budget_comparison} (located on page 3) summarizes the optimal configurations.
 
-\subsection{Key Design Space Insights}
-The comparison between 8 KB and 16 KB configurations highlights several crucial microarchitectural insights:
-\begin{enumerate}
-    \item \textbf{Address Sensitivity vs. Aliasing:} Combining global history with PC address bits (such as in \texttt{gapL} and \texttt{papL}) helps isolate static branch paths. Compared to purely history-indexed models like \texttt{gagL} and \texttt{pagL}, this mitigates destructive conflict aliasing in the PHT, lowering the MPKI.
-    \item \textbf{The Latency Threshold Anomaly:} A highly counter-intuitive finding is that doubling the hardware budget from 8 KB to 16 KB \textbf{degrades} performance for local-history models (\texttt{pagL}, \texttt{papL}, and \texttt{lxorL}). Although doubling the capacity reduces MPKI (e.g., from 14.07 to 12.87 for \texttt{papL}), the larger SRAM structures increase read latency. Under the HARCOM timing model, this lookup time crosses a cycle boundary (rounding up from 2 to 3 cycles), introducing pipeline fetch stalls that collapse the IPC (from 2.24 down to 1.58 for \texttt{papL}) and VFS score (from 0.42 to 0.32). This demonstrates that larger tables can be detrimental in real hardware if they increase access time.
-    \item \textbf{Throughput Dominance:} Block-based (line-wide) predictors (with suffix \texttt{L}) achieve an IPC between 2.2 and 2.6 at 8 KB by predicting up to 16 instructions per cycle in a single lookup, vastly outperforming their scalar counterparts which are restricted to an IPC of $\sim$0.49.
-\end{enumerate}
-
-Figure~\ref{fig:structured_profiling} (located on page 4) illustrates the performance scaling of the different swept configurations.
-
-% \begin{figure*}[htbp]
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{structured_profiling_8kb_16kb}
-%     \caption{\textbf{Four-panel metrics comparison under 8 KB vs 16 KB storage constraints: VFS Speedup Score, Branch Misprediction Rate (MPKI), IPC, and Energy per Instruction (EPI).}}
-%     \label{fig:structured-profiling}
-% \end{figure*}
-
-\clearpage
-
-%---------------------------------------------------------------------------
-%  APPENDIX
-%---------------------------------------------------------------------------
-\appendix
-
-\begin{table*}[tb]
-    \caption{\textbf{Statistics of the training traces.} Min, Max and Quartiles at 0.25, 0.5 and 0.75 over the whole dataset of training traces, on the chosen statistics.}
-    \centering 
+\begin{table}[htbp]
+    \caption{\textbf{Performance Summary.} Average across the 12 traces of all metrics, on the best predictors. All the results are in Table~\ref{table:block_avg_performance}.}
+    \centering
+    \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|lrrrrr|}
     \hline
     \rowcolor{bluePoli!40}
-    & \textbf{Min} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Max} \\
+    \textbf{Predictor} & \textbf{Budget} & \textbf{VFS} & \textbf{MPKI} & \textbf{IPC} & \textbf{EPI} \T\B \\
     \hline \hline
-    br density & 1.5\% & 15.3\% & 18.8\% & 20.6\% & 33.3\% \\
-    cond taken rate & 6.4\% & 33.2\% & 39.6\% & 45.8\% & 99.2\% \\
-    backward rate & 0.4\% & 10.6\% & 14.8\% & 23.0\% & 79.6\% \\
-    unique cond PCs & 40 & 567 & 1,553 & 10,422 & 66,766 \\
-    indirect rate & 0.0\% & 2.7\% & 8.7\% & 14.5\% & 27.2\% \\
+    \texttt{tage\bf{L}}       & 8 KB  & \textbf{0.7101} & 5.80 & \textbf{4.7806} & 939.6 \\
+    \texttt{tage\bf{L}}       & 16 KB & 0.6988 & 5.42 & 4.7048 & 1145.5 \\
+    \texttt{tage\_u\bf{L}}    & 8 KB  & 0.6727 & 4.62 & 4.3510 & 821.8 \\
+    \texttt{tage\_u\bf{L}}    & 16 KB & 0.6666 & \textbf{4.19} & 4.2656 & 933.4 \\
+    \texttt{gshare\bf{L}}     & 8 KB  & 0.6544 & 5.25 & 3.4839 & \textbf{115.8} \\
+    \texttt{gshare\bf{L}}     & 16 KB & 0.6586 & 4.93 & 3.4934 & 145.5 \\
     \hline
-    \end{tabular}
-    % \\[10pt]
-    % \caption{Min, Max and Quartiles at 0.25, 0.5 and 0.75 over the whole dataset of training traces, on the chosen statistics.}
-    \label{table:traces}
-\end{table*}
+    \texttt{gap}         & 8 KB  & \textbf{0.2338} & 6.32 & \textbf{0.9898} & \textbf{217.9} \\
+    \texttt{tage}        & 8 KB  & 0.2254 & 5.49 & 0.9846 & 1662.2 \\
+    \texttt{tage}        & 16 KB & 0.2239 & \textbf{5.01} & 0.9851 & 2401.2 \\
+    \texttt{gshare}      & 16 KB & 0.1219 & 5.07 & 0.4979 & 263.2 \\
+    \hline
+    \end{tabular}%
+    }
+    \label{table:compact_summary}
+\end{table}
 
-\subsection{Extended Simulation Results}
+\subsection{Experimental Results and Design Space Analysis}
+Analyzing the simulation data (summarized for key configurations in Table~\ref{table:compact_summary}) reveals several insights into the trade-offs of branch predictor design:
 
-This section presents the complete breakdown of VFS scores for both Block and Scalar predictors across the 12 representative traces, followed by the predictor family speedups and VFS comparison plots.
+\textbf{Trace Characteristics and Predictor Suitability:} Simple global-history predictors (\texttt{gshareL}, \texttt{gapL}, and \texttt{gagL}) perform exceptionally well on traces with low branch complexity. For instance, on \texttt{fp\_28} (which has a low branch density of 1.5\% and only 40 unique conditional PCs), \texttt{gshareL} achieves a high VFS score of 1.034, since aliasing in the prediction tables is negligible. Conversely, on complex workloads like \texttt{web\_13} (which contains 66,766 unique conditional PCs), the tagged geometric history length (\texttt{tageL}, \texttt{tage\_uL}) predictors outperform them significantly (VFS of 0.756 for \texttt{tageL} vs. 0.655 for \texttt{gshareL}). Tagged components successfully mitigate destructive aliasing across huge branch working sets. For traces with extremely high indirect rates (such as \texttt{tomcat-wrk2-panel.3289\_0} at 27.2\%), all conditional branch predictors suffer a general performance degradation due to the indirect branch recovery penalties.
+
+\textbf{Block vs. Scalar Predictors:} Block-level predictors (suffix \texttt{L}) fetch and predict multiple instructions in a single cycle by reusing the active SRAM row, leading to an IPC range of 3.0--4.7, compared to only 0.49--0.98 for scalar models. More importantly, this throughput dominance translates directly into energy efficiency: block predictors achieve VFS speedup factors of 3.0x--5.64x over their scalar counterparts. The amortized Energy Per Instruction (EPI) remains highly competitive, proving that line-wide prediction is crucial for high-performance out-of-order cores.
+
+\textbf{Predictor Groups and Behaviors:} The global-indexed models (\texttt{gap}, \texttt{gag}, and \texttt{gshare}) behave very similarly, as they use variations of global history XORed or concatenated with the PC address, yielding clustered VFS and MPKI scores (e.g., VFS of 0.6586, 0.6525, 0.6472 respectively at 16 KB block). When comparing TAGE variants, \texttt{tageL} achieves a higher IPC (4.7048 vs. 4.2656) due to simpler update rules, whereas \texttt{tage\_uL} achieves a lower MPKI (4.19 vs. 5.42) by utilizing usefulness (\texttt{u}) bits to track and deallocate useless entries, highlighting the accuracy-throughput trade-off.
+
+\textbf{The 16 KB vs. 8 KB Budget Trade-off:} Doubling the budget from 8 KB to 16 KB consistently reduces the branch misprediction rate (e.g., \texttt{gshareL} MPKI drops from 5.25 to 4.93). However, under HARCOM's physical timing and energy model, a larger budget is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and dynamic/static energy (e.g., \texttt{tageL} EPI increases from 939.6 fJ at 8 KB to 1145.5 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.7101 to 0.6988).
 
 \begin{table*}[htbp]
     \caption{\textbf{Block Predictor VFS Scores Per Trace Breakdown (8 KB Budget)}}
@@ -315,6 +304,40 @@ This section presents the complete breakdown of VFS scores for both Block and Sc
     \label{table:block_16kb_vfs}
 \end{table*}
 
+\clearpage
+
+%---------------------------------------------------------------------------
+%  APPENDIX
+%---------------------------------------------------------------------------
+\appendix
+\section{Trace Characteristics}
+\label{sec:appendix_traces}
+
+\begin{table*}[tb]
+    \caption{\textbf{Statistics of the training traces.} Min, Max and Quartiles at 0.25, 0.5 and 0.75 over the whole dataset of training traces, on the chosen statistics.}
+    \centering 
+    \begin{tabular}{|lrrrrr|}
+    \hline
+    \rowcolor{bluePoli!40}
+    & \textbf{Min} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Max} \\
+    \hline \hline
+    br density & 1.5\% & 15.3\% & 18.8\% & 20.6\% & 33.3\% \\
+    cond taken rate & 6.4\% & 33.2\% & 39.6\% & 45.8\% & 99.2\% \\
+    backward rate & 0.4\% & 10.6\% & 14.8\% & 23.0\% & 79.6\% \\
+    unique cond PCs & 40 & 567 & 1,553 & 10,422 & 66,766 \\
+    indirect rate & 0.0\% & 2.7\% & 8.7\% & 14.5\% & 27.2\% \\
+    \hline
+    \end{tabular}
+    % \\[10pt]
+    % \caption{Min, Max and Quartiles at 0.25, 0.5 and 0.75 over the whole dataset of training traces, on the chosen statistics.}
+    \label{table:traces}
+\end{table*}
+
+\section{Extended Simulation Results}
+\label{sec:appendix_results}
+
+This section presents the complete breakdown of VFS scores for both Block and Scalar predictors across the 12 representative traces, followed by the predictor family speedups and VFS comparison plots.
+
 % \begin{table*}[htbp]
 %     \caption{\textbf{Scalar Predictor VFS Scores Per Trace Breakdown (8 KB Budget)}}
 %     \centering
@@ -365,49 +388,6 @@ This section presents the complete breakdown of VFS scores for both Block and Sc
 %     \label{table:scalar_16kb_vfs}
 % \end{table*}
 
-\begin{table}[htbp]
-    \caption{\textbf{Block vs. Scalar Predictor Family VFS Performance Speedup}}
-    \centering
-    \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{|l c c|}
-    \hline
-    \rowcolor{bluePoli!40}
-    \textbf{Predictor Family} & \textbf{Budget} & \textbf{Speedup Ratio} \T\B \\
-    \hline \hline
-    \textbf{TAGE\_U}    & 8 KB  & \textbf{5.64x} \\
-                        & 16 KB & \textbf{5.64x} \\
-    \hline
-    \textbf{GShare}     & 8 KB  & \textbf{5.37x} \\
-                        & 16 KB & \textbf{5.40x} \\
-    \hline
-    \textbf{GAg}        & 8 KB  & \textbf{5.32x} \\
-                        & 16 KB & \textbf{5.35x} \\
-    \hline
-    \textbf{BiMode}     & 8 KB  & \textbf{5.32x} \\
-                        & 16 KB & \textbf{5.35x} \\
-    \hline
-    \textbf{PAp}        & 8 KB  & \textbf{5.10x} \\
-                        & 16 KB & \textbf{5.09x} \\
-    \hline
-    \textbf{PAg}        & 8 KB  & \textbf{5.04x} \\
-                        & 16 KB & \textbf{4.76x} \\
-    \hline
-    \textbf{LXOR}       & 8 KB  & \textbf{4.98x} \\
-                        & 16 KB & \textbf{4.98x} \\
-    \hline
-    \textbf{TAGE}       & 8 KB  & \textbf{3.15x} \\
-                        & 16 KB & \textbf{3.12x} \\
-    \hline
-    \textbf{Perceptron} & 8 KB  & \textbf{3.03x} \\
-                        & 16 KB & \textbf{3.01x} \\
-    \hline
-    \textbf{GAp}        & 8 KB  & \textbf{2.77x} \\
-                        & 16 KB & \textbf{5.38x} \\
-    \hline
-    \end{tabular}%
-    }
-    \label{table:family_speedup}
-\end{table}
 
 \begin{table*}[htbp]
     \caption{\textbf{Block Predictor Average Performance across 12 Traces.} Here we can see the average over the traces of the predictor, on VFS (Voltage-Frequency-Scaled Speedup), MPKI (Mispredictions Per Kilo Instruction), IPC (Instruction Per Clock cycle) and EPI (Energy Per Instruction). Seeing all the metrics allows us to understand better the pros and cons of each predictor.}
@@ -497,21 +477,56 @@ This section presents the complete breakdown of VFS scores for both Block and Sc
 
 \end{figure*}
 
-
+\begin{table}[htbp]
+    \caption{\textbf{Block vs. Scalar Predictor Family VFS Performance Speedup}}
+    \centering
+    \resizebox{\columnwidth}{!}{%
+    \begin{tabular}{|l c c|}
+    \hline
+    \rowcolor{bluePoli!40}
+    \textbf{Predictor Family} & \textbf{Budget} & \textbf{Speedup Ratio} \T\B \\
+    \hline \hline
+    \textbf{TAGE\_U}    & 8 KB  & \textbf{5.64x} \\
+                        & 16 KB & \textbf{5.64x} \\
+    \hline
+    \textbf{GShare}     & 8 KB  & \textbf{5.37x} \\
+                        & 16 KB & \textbf{5.40x} \\
+    \hline
+    \textbf{GAg}        & 8 KB  & \textbf{5.32x} \\
+                        & 16 KB & \textbf{5.35x} \\
+    \hline
+    \textbf{BiMode}     & 8 KB  & \textbf{5.32x} \\
+                        & 16 KB & \textbf{5.35x} \\
+    \hline
+    \textbf{PAp}        & 8 KB  & \textbf{5.10x} \\
+                        & 16 KB & \textbf{5.09x} \\
+    \hline
+    \textbf{PAg}        & 8 KB  & \textbf{5.04x} \\
+                        & 16 KB & \textbf{4.76x} \\
+    \hline
+    \textbf{LXOR}       & 8 KB  & \textbf{4.98x} \\
+                        & 16 KB & \textbf{4.98x} \\
+    \hline
+    \textbf{TAGE}       & 8 KB  & \textbf{3.15x} \\
+                        & 16 KB & \textbf{3.12x} \\
+    \hline
+    \textbf{Perceptron} & 8 KB  & \textbf{3.03x} \\
+                        & 16 KB & \textbf{3.01x} \\
+    \hline
+    \textbf{GAp}        & 8 KB  & \textbf{2.77x} \\
+                        & 16 KB & \textbf{5.38x} \\
+    \hline
+    \end{tabular}%
+    }
+    \label{table:family_speedup}
+\end{table}
 
 \begin{figure}[htbp]
-
     \centering
-
-    \includegraphics[width=0.9\linewidth]{family_speedup}
-
+    \includegraphics[width=1\linewidth]{family_speedup}
     \caption{\textbf{VFS Performance Speedup Factor of Block vs. Scalar Predictors.}}
-
     \label{fig:family_speedup}
-
 \end{figure}
-
-
 
 %---------------------------------------------------------------------------
 %  BIBLIOGRAPHY
