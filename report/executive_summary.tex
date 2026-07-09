@@ -181,8 +181,28 @@ Furthermore, the interface enables \textbf{line prediction} (block-level predict
 
 We evaluate our predictors under two memory budgets: \textbf{8 KB} and \textbf{16 KB}. To perform a comprehensive analysis across diverse application behaviors, we select a subset of 12 training traces from the 168 CBP-NG benchmark suite. These traces are chosen to represent extreme points and median statistics across key branch metrics, including branch density, conditional taken rate, backward branch rate, indirect branch rate, and unique PC counts, as summarized in Table~\ref{table:chosen-traces}. For each predictor family, we sweep design parameters (such as global history lengths, index widths, and tag sizes) to balance table capacity with indexing accuracy, seeking the configuration that maximizes the Voltage-Frequency-Scaled Speedup (\textbf{VFS}) metric within the budget constraints.
 
+\subsection{Experimental Results}
+Analyzing the simulation data (summarized for key configurations in Table~\ref{table:compact_summary}) reveals several insights into the trade-offs of branch predictor design:
+
+\vspace{0.2cm}
+\textbf{Trace Characteristics and Predictor Suitability.} \\
+Simple global-history predictors (\texttt{gshareL}, \texttt{gapL}, and \texttt{gagL}) perform well on traces with low branch complexity. For instance, on \texttt{fp\_28} (which has a low branch density of 1.5\% and only 40 unique conditional PCs), \texttt{gshareL} achieves a high VFS score of 1.034, since aliasing in the prediction tables is negligible. Conversely, on complex workloads like \texttt{web\_13} (which contains 66,766 unique conditional PCs), the tagged geometric history length (\texttt{tageL}, \texttt{tage\_uL}) predictors outperform them significantly (VFS of 0.756 for \texttt{tageL} vs. 0.655 for \texttt{gshareL}). Tagged components successfully mitigate destructive aliasing across huge branch working sets. For traces with extremely high indirect rates (such as \texttt{tomcat-wrk2-panel.3289\_0} at 27.2\%), all conditional branch predictors suffer a general performance degradation due to the indirect branch recovery penalties.
+
+\vspace{0.2cm}
+\textbf{Block vs. Scalar Predictors.} \\
+Block-level predictors (suffix \texttt{L}) fetch and predict multiple instructions in a single cycle (up to 16 instructions, as $LI=16$) by reusing the active SRAM row, leading to a massive IPC boost (ranging from 3.0 to 4.85) compared to scalar models (which are strictly limited to an IPC range of 0.49--0.98). More importantly, this throughput dominance translates directly into energy efficiency. For example, the block-level \texttt{gshareL} (16~KB) achieves an EPI of 145~fJ, which is nearly half the EPI of its scalar counterpart \texttt{gshare} (263~fJ), despite executing at a 7x higher IPC. This occurs because scalar predictors must perform a separate SRAM read access for every single instruction, whereas block predictors amortize a single wide SRAM row read over the entire fetch block, fetching subsequent predictions from low-power registers (using \texttt{reuse\_predict1/2}). This reduction in active SRAM accesses results in a 3.0x--5.6x speedup in VFS score for block-level models over their scalar counterparts.
+
+\vspace{0.2cm}
+\textbf{Predictor Groups and Behaviors.} \\
+The global-indexed models (\texttt{gap}, \texttt{gag}, and \texttt{gshare}) behave very similarly, as they use variations of global history XORed or concatenated with the PC address. When comparing TAGE variants, \texttt{tageL} achieves a higher IPC (4.705 vs. 4.266) due to simpler update rules, whereas \texttt{tage\_uL} achieves a lower MPKI (4.19 vs. 5.42) by utilizing usefulness (\texttt{u}) bits to track and deallocate useless entries, highlighting the accuracy-throughput trade-off.
+
+\vspace{0.2cm}
+\textbf{The 16 KB vs. 8 KB Budget Trade-off.} \\
+Doubling the budget from 8 KB to 16 KB reduces the branch misprediction rate, but it is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and energy (e.g., \texttt{tageL} EPI increases from 939 fJ at 8 KB to 1145 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.710 to 0.699).
+
+
 \begin{table}[htbp]
-    \caption{\textbf{Performance Summary.} Average across the 12 traces of all metrics, on the best predictors. All the results are in Table~\ref{table:block_avg_performance}.}
+    \caption{\textbf{Performance Summary.} Average across the 12 traces on all metrics, of the best predictors. All the results are in Table~\ref{table:block_avg_performance}.}
     \centering
     \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|lrrrrr|}
@@ -214,31 +234,13 @@ We evaluate our predictors under two memory budgets: \textbf{8 KB} and \textbf{1
     \label{table:compact_summary}
 \end{table}
 
-\subsection{Experimental Results}
-Analyzing the simulation data (summarized for key configurations in Table~\ref{table:compact_summary}) reveals several insights into the trade-offs of branch predictor design:
-
-\vspace{0.2cm}
-\textbf{Trace Characteristics and Predictor Suitability.} \\
-Simple global-history predictors (\texttt{gshareL}, \texttt{gapL}, and \texttt{gagL}) perform well on traces with low branch complexity. For instance, on \texttt{fp\_28} (which has a low branch density of 1.5\% and only 40 unique conditional PCs), \texttt{gshareL} achieves a high VFS score of 1.034, since aliasing in the prediction tables is negligible. Conversely, on complex workloads like \texttt{web\_13} (which contains 66,766 unique conditional PCs), the tagged geometric history length (\texttt{tageL}, \texttt{tage\_uL}) predictors outperform them significantly (VFS of 0.756 for \texttt{tageL} vs. 0.655 for \texttt{gshareL}). Tagged components successfully mitigate destructive aliasing across huge branch working sets. For traces with extremely high indirect rates (such as \texttt{tomcat-wrk2-panel.3289\_0} at 27.2\%), all conditional branch predictors suffer a general performance degradation due to the indirect branch recovery penalties.
-
-\vspace{0.2cm}
-\textbf{Block vs. Scalar Predictors.} \\
-Block-level predictors (suffix \texttt{L}) fetch and predict multiple instructions in a single cycle (up to 16 instructions, as $LI=16$) by reusing the active SRAM row, leading to a massive IPC boost (ranging from 3.0 to 4.85) compared to scalar models (which are strictly limited to an IPC range of 0.49--0.98). More importantly, this throughput dominance translates directly into energy efficiency. For example, the block-level \texttt{gshareL} (16~KB) achieves an EPI of 145~fJ, which is nearly half the EPI of its scalar counterpart \texttt{gshare} (263~fJ), despite executing at a 7x higher IPC. This occurs because scalar predictors must perform a separate SRAM read access for every single instruction, whereas block predictors amortize a single wide SRAM row read over the entire fetch block, fetching subsequent predictions from low-power registers (using \texttt{reuse\_predict1/2}). This reduction in active SRAM accesses results in a 3.0x--5.6x speedup in VFS score for block-level models over their scalar counterparts.
-
-\vspace{0.2cm}
-\textbf{Predictor Groups and Behaviors.} \\
-The global-indexed models (\texttt{gap}, \texttt{gag}, and \texttt{gshare}) behave very similarly, as they use variations of global history XORed or concatenated with the PC address. When comparing TAGE variants, \texttt{tageL} achieves a higher IPC (4.7048 vs. 4.2656) due to simpler update rules, whereas \texttt{tage\_uL} achieves a lower MPKI (4.19 vs. 5.42) by utilizing usefulness (\texttt{u}) bits to track and deallocate useless entries, highlighting the accuracy-throughput trade-off.
-
-\vspace{0.2cm}
-\textbf{The 16 KB vs. 8 KB Budget Trade-off.} \\
-Doubling the budget from 8 KB to 16 KB reduces the branch misprediction rate. However, under HARCOM's physical timing and energy model, a larger budget is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and dynamic/static energy (e.g., \texttt{tageL} EPI increases from 939 fJ at 8 KB to 1145 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.7101 to 0.6988).
 
 \subsection{Our Proposal}
-Building upon the trade-off analysis of block-level TAGE predictors, we propose three distinct TAGE variants designed to optimize energy efficiency and prediction throughput:
+Building upon the trade-off analysis of block-level TAGE predictors, we propose three distinct TAGE variants designed to optimize the base predictor for energy efficiency and prediction throughput:
 
 \vspace{0.2cm}
 \textbf{TAGE bimode.} \\
-This variant replaces the simple bimodal base predictor ($t_0$) with a choice-directed Bi-Mode predictor~\cite{lee1997bimode}. However, under strict memory budgets (8~KB and 16~KB), the choice table, taken PHT, and not-taken PHT consume a significant fraction of the storage. This severely limits the capacity of the TAGE tagged tables, forcing them to use short 8-bit tags and fewer rows, causing the average MPKI to degrade to 9.74 (compared to 5.42 for \texttt{tageL}). Additionally it consumes also more energy than a bimodal basae predictor.
+This variant replaces the simple bimodal base predictor ($t_0$) with a Bi-Mode predictor~\cite{lee1997bimode}, for increasing the accuracy of the base predictor. However, under strict memory budgets (8~KB and 16~KB), the choice table, taken PHT, and not-taken PHT consume a significant fraction of the storage. This severely limits the capacity of the TAGE tagged tables, forcing them to use short tags and fewer rows, causing the average MPKI to degrade to 9.74 (compared to 5.42 for \texttt{tageL}). Additionally it consumes also more energy than a bimodal base predictor.
 
 \vspace{0.2cm}
 \textbf{TAGE bias.} \\
@@ -251,8 +253,8 @@ To overcome the latency bottleneck of the bias table while preserving energy sav
 
 The experimental results show that \texttt{tage\_satL} is highly competitive:
 \begin{itemize}
-    \item \textbf{Throughput:} It achieves the highest average IPC among all evaluated predictors (4.8512 at 16~KB and 4.8579 at 8~KB). Bypassing the Stage 2 tagged RAM lookups for saturated branches eliminates their read latency, allowing Stage 2 overrides to resolve faster.
-    \item \textbf{Energy:} It significantly reduces dynamic energy, achieving a 14.6\% reduction in EPI at 16~KB and a 21.3\% reduction at 8~KB compared to \texttt{tageL}.
+    \item \textbf{Throughput:} It achieves the highest average IPC among all evaluated predictors (4.8512 at 16~KB and 4.8579 at 8~KB). Bypassing the Stage 2 tagged RAM lookups for saturated branches eliminates their read latency.
+    \item \textbf{Energy:} It reduces dynamic energy, achieving a 14.6\% reduction in EPI at 16~KB and a 21.3\% reduction at 8~KB compared to \texttt{tageL}.
     \item \textbf{VFS and MPKI:} Although bypassing TAGE increases the misprediction rate (MPKI rises to 7.39 at 16~KB), the combined throughput and energy benefits result in a high VFS score, demonstrating a highly efficient trade-off.
 \end{itemize}
 
@@ -381,7 +383,7 @@ Here in the appendix we have some extra tables which are worth noticing. In Tabl
 \section{Extended Simulation Results}
 \label{sec:appendix_results}
 
-This section presents the performances of all the predictors (both scalar and block based) averaged over the 12 traces, with VFS, MPKI, IPC and EPI. Then we have the table highlighting the speedup in VFS score by comparing the scalar vs the block version.
+This section presents the performances of all the predictors, both block based (Table~\ref{table:block_avg_performance}) and  scalar (Table~\ref{table:scalar_avg_performance}), averaged over the 12 traces, with all the performance metrics (VFS, MPKI, IPC and EPI). Then in the Table~\ref{table:family_speedup} we highlight the speedup in VFS score by comparing the scalar vs the block version.
 
 % \begin{table*}[htbp]
 %     \caption{\textbf{Scalar Predictor VFS Scores Per Trace Breakdown (8 KB Budget)}}
