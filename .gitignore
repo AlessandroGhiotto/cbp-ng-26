@@ -6,9 +6,24 @@
 /benchmark_results/
 /comparison_results/
 /profiling/outputs/
-AGENTS.md
 **/*.out
 /traces/
+
+/notes
+/temp
+# old sweeps
+/profiling/scripts/bimodeL_sweep.py
+/profiling/scripts/bimode_sweep.py
+/profiling/scripts/family_comparison.py
+/profiling/scripts/fixed_budget_sweep.py
+/profiling/scripts/gagL_vs_gapL_sweep.py
+/profiling/scripts/gag_vs_gap_sweep.py
+/profiling/scripts/gap_param_sweep.py
+/profiling/scripts/lxor_sweep.py
+/profiling/scripts/pagL_vs_papL_sweep.py
+/profiling/scripts/pag_vs_pap_sweep.py
+/profiling/scripts/perceptron_comparison.py
+/profiling/scripts/tage_comparison.py
 
 # LaTeX temporary files
 *.aux
