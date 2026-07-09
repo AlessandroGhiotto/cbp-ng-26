@@ -10,7 +10,7 @@
 /traces/
 
 /notes
-/temp
+
 # old sweeps
 /profiling/scripts/*_sweep.py
 /profiling/scripts/*_comparison.py
