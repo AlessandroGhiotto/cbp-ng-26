@@ -25,5 +25,8 @@
 *.synctex.gz
 *.bbl
 *.blg
+*.snm
+*.nav
 report/executive_summary.pdf
+presentation/presentation.pdf
 report/Images/*-eps-converted-to.pdf
