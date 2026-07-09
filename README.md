@@ -1,4 +1,116 @@
-# CBP-NG Championship Documentation
+# Design and Optimization of a High-Performance and Energy-Efficient Branch Predictor in HARCOM
+
+### Politecnico di Milano — MSc in High-Performance Computing Engineering (A.Y. 2025-2026)
+
+- **Authors:** Roberto Di Lauro, Alessandro Ghiotto
+- **Advisors:** Marco Ronzani (PHD), Prof. Cristina Silvano
+- **Course:** High-Performance Computing Engineering
+
+---
+
+## Project Overview
+
+This repository contains the work done for the advanced computer architecture project on branch prediction. We evaluate the performance, energy, and latency trade-offs of various branch prediction algorithms under strict hardware budget constraints (**8 KB** and **16 KB**) using the **HARCOM** (Hardware Complexity) library.
+
+The project covers a comparative analysis of classic branch predictors alongside block-based (line-wide) extensions, culminating in the proposal of three custom **TAGE** variants designed to optimize branch prediction for both latency and energy efficiency.
+
+### Key Contributions & Insights
+
+1. **Comparative Study:** Implemented and evaluated classic global-history-based models (Gshare, GAG, GAP), local-history-based models (PAG, PAP), and advanced models (Bi-Mode, TAGE, Perceptron).
+2. **Block-level vs. Scalar Predictors:** Moving from scalar prediction (one instruction/cycle) to block-level prediction (line-wide prediction up to 16 instructions/cycle using `predict1/2` and `reuse_predict1/2` interfaces) achieves a massive IPC improvement (up to 3.0x–4.85x speedup) and nearly halves the energy consumption (EPI) by fetching subsequent predictions from low-power registers rather than executing sequential SRAM reads.
+3. **Advanced TAGE Optimization Proposals:**
+   - **TAGE bimode:** Replaces the bimodal base predictor with a Bi-Mode predictor to increase accuracy. However, under tight 8KB/16KB budgets, the tables consumed too much storage, degrading TAGE tagged table capacity and increasing mispredictions.
+   - **TAGE bias:** Introduces a small, dedicated sequential bias table as a first-level filter. Strongly biased branches skip the bimodal/tagged updates, reducing EPI but introducing a Stage 1 latency bottleneck (increasing Stage 1 from 1 to 2 cycles under HARCOM timing rules).
+   - **TAGE sat (Our Best Design):** Introduces a saturation-based bypass scheme using the existing bimodal base table counters. Fully saturated counters bypass the Stage 2 TAGE tagged RAM lookups. This eliminates Stage 2 read latency, achieves the highest average IPC (4.85), and reduces EPI by **14.6%** (16KB) and **21.3%** (8KB) compared to baseline TAGE.
+
+---
+
+## Repository Guide
+
+Below is a map of the key directories and custom components developed for this project.
+
+### 1. Implemented Predictors
+
+All custom-implemented predictors are located in the [predictors/our_predictors](predictors/our_predictors) folder. Everything outside this subdirectory was part of the original simulator workspace.
+
+- **Scalar Predictors:**
+  - [bimode.hpp](predictors/our_predictors/bimode.hpp) — Classic Bi-Mode branch predictor.
+  - [bimode_singleram.hpp](predictors/our_predictors/bimode_singleram.hpp) — Bi-Mode optimized to share a single RAM.
+  - [gag.hpp](predictors/our_predictors/gag.hpp) — Global history, Global PHT.
+  - [gap.hpp](predictors/our_predictors/gap.hpp) — Global history, Per-address PHT.
+  - [gshare.hpp](predictors/our_predictors/gshare.hpp) — Baseline Gshare.
+  - [lxor.hpp](predictors/our_predictors/lxor.hpp) — Local history XORed with PC.
+  - [pag.hpp](predictors/our_predictors/pag.hpp) — Local history, Global PHT.
+  - [pap.hpp](predictors/our_predictors/pap.hpp) — Local history, Per-address PHT.
+  - [perceptron_simple.hpp](predictors/our_predictors/perceptron_simple.hpp) — A simple perceptron-based model.
+  - [tage_simple.hpp](predictors/our_predictors/tage_simple.hpp) — Simplified TAGE implementation.
+  - [tage_simple_u.hpp](predictors/our_predictors/tage_simple_u.hpp) — Simplified TAGE with usefulness (`u`) tracking bits.
+- **Block/Line-based Predictors (`*L.hpp`):**
+  - Line-wide counterparts to the above, designed to predict entire instruction cache lines using the HARCOM block reuse interface:
+  - [bimodeL.hpp](predictors/our_predictors/bimodeL.hpp), [gagL.hpp](predictors/our_predictors/gagL.hpp), [gapL.hpp](predictors/our_predictors/gapL.hpp), [gshareL.hpp](predictors/our_predictors/gshareL.hpp), [lxorL.hpp](predictors/our_predictors/lxorL.hpp), [pagL.hpp](predictors/our_predictors/pagL.hpp), [papL.hpp](predictors/our_predictors/papL.hpp), [perceptron_simpleL.hpp](predictors/our_predictors/perceptron_simpleL.hpp), [perceptron_simpleL_banks.hpp](predictors/our_predictors/perceptron_simpleL_banks.hpp), [tage_simpleL.hpp](predictors/our_predictors/tage_simpleL.hpp), [tage_simple_uL.hpp](predictors/our_predictors/tage_simple_uL.hpp).
+- **Our Proposed TAGE Optimizations:**
+  - [tage_bimodeL.hpp](predictors/our_predictors/tage_bimodeL.hpp) — TAGE with a Bi-Mode base predictor.
+  - [tage_biasL.hpp](predictors/our_predictors/tage_biasL.hpp) — TAGE with a first-level sequential bias filtering table.
+  - [tage_simple_satL.hpp](predictors/our_predictors/tage_simple_satL.hpp) — TAGE with saturation-based tagged table bypassing (Best design).
+
+All of these are registered and included inside [our_predictors.hpp](predictors/our_predictors/our_predictors.hpp) and linked into the simulator flow through [branch_predictor.hpp](branch_predictor.hpp).
+
+### 2. Data Profiling & Simulation Analysis
+
+The [profiling](profiling) directory contains scripts, outputs, and notebooks used to run parameter sweeps, analyze trace statistics, and generate comparison reports:
+
+- **Analysis Notebook:** [CBP_Predictor_Analysis.ipynb](profiling/CBP_Predictor_Analysis.ipynb) analyzes performance and energy metrics across runs.
+- **Comparison Report:** [Full_Comparison_Report.md](profiling/Full_Comparison_Report.md) aggregates VFS, MPKI, and EPI results for all configurations across a representative suite of 12 traces under fixed 8KB and 16KB hardware budgets.
+- **Sweeps & Analysis Scripts:** Located in [profiling/scripts/](profiling/scripts).
+- **Plotting & CSV Outputs:** Located in [profiling/outputs/](profiling/outputs).
+
+### 3. Reports & Presentation Slides
+
+- **Project Report:** Located in [report/](report). The PDF version is available at [executive_summary.pdf](report/executive_summary.pdf) (LaTeX sources in [executive_summary.tex](report/executive_summary.tex)).
+- **Project Presentation:** Located in [presentation/](presentation). The PDF slide deck is available at [presentation.pdf](presentation/presentation.pdf) (LaTeX sources in [presentation.tex](presentation/presentation.tex)).
+
+---
+
+## Compiling & Running Our Predictors
+
+To compile any of our custom predictors:
+
+```bash
+./compile cbp -DPREDICTOR="<predictor_class_name><>"
+```
+
+### Examples:
+
+- Compile our best block-based proposal (TAGE with saturation bypassing):
+  ```bash
+  ./compile cbp -DPREDICTOR="tage_simple_satL<>"
+  ```
+- Compile a simple block-based Gshare:
+  ```bash
+  ./compile cbp -DPREDICTOR="gshare_simpleL<>"
+  ```
+- Compile a scalar Bi-Mode predictor:
+  ```bash
+  ./compile cbp -DPREDICTOR="bimode_simple<>"
+  ```
+
+Once compiled, you can run the simulator on a trace (e.g., using the training traces):
+
+```bash
+./run ./cbp ./gcc_test_trace.gz
+```
+
+Or run all traces and pipe the output to `predictor_metrics.py` and `vfs.py` to evaluate the VFS score:
+
+```bash
+./predictor_metrics.py OUTDIR | ./vfs.py
+```
+
+---
+
+---
+
+## CBP-NG Championship Documentation (Original Simulator README)
 
 Welcome to the repository for the Next-Generation Championship in Branch
 Prediction! This championship aims to foster innovation in branch prediction by
@@ -11,9 +123,9 @@ website](https://cbp-ng.bpchamp.com) for additional information about the
 championship, including how to join the mailing list for announcements and
 conversation with the organizers and other participants.
 
-## Writing a Predictor
+### Writing a Predictor
 
-### HARCOM Language
+#### HARCOM Language
 
 Predictors in the CBP-NG simulator are written using the HARCOM (HARdware
 COMplexity) C++ library. Using this library allows CBP-NG to model the energy,
@@ -32,7 +144,7 @@ Please review the full HARCOM manual, [available in the CBP-NG
 repository](https://github.com/AmpereComputing/cbp-ng/raw/refs/heads/main/docs/harcom.pdf),
 for a more details about how this library works and how to use it.
 
-### Simulator Interface
+#### Simulator Interface
 
 The simulator interface is designed to balance flexibility of predictor design
 with faithfulness to the typical external design constraints placed on branch
@@ -71,7 +183,7 @@ different logic for the first instruction in a given block (i.e. an initial
 array lookup) than it does for subsequent instructions, and to directly control
 the length of a block.
 
-### Example Predictors
+#### Example Predictors
 
 Sometimes an example is worth much more than an explanation. To that end,
 example predictors are available in [the `./predictors` subdirectory of the
@@ -79,7 +191,7 @@ CBP-NG
 repository](https://github.com/AmpereComputing/cbp-ng/tree/main/predictors).
 These include bimodal, gshare, perceptron, and TAGE reference predictors.
 
-### Common Utilities
+#### Common Utilities
 
 Different predictors may re-use many of the same components. To help provide
 some basic building blocks, we've gathered several potentially-common
@@ -90,7 +202,7 @@ updating saturating counters, tracking and "folding" branch history, and
 reading/writing a banked RAM. Many of the example predictors in the same
 directory provide examples of how to use them.
 
-## Predictor Scoring
+### Predictor Scoring
 
 The competition score will take into account prediction accuracy,
 energy-efficiency, and implementation complexity as part of a
@@ -106,9 +218,9 @@ way or which undermine the intention of the scoring will not be considered. All
 submissions will be judged in the spirit of the competition: pushing the
 boundaries of energy-efficient and high-performance branch prediction.
 
-## Building and Running Predictors
+### Building and Running Predictors
 
-### Requirements
+#### Requirements
 
 The CBP-NG Simulator and HARCOM require either GCC version 12 or later or Clang
 version 19 or later.
@@ -120,7 +232,7 @@ If you are familiar with
 [`nix-shell`](https://nix.dev/manual/nix/2.18/command-ref/nix-shell), this
 repository contains a shell.nix containing the simulator's dependencies.
 
-### Compiling
+#### Compiling
 
 Though you are welcome to compile your predictor however you wish, the
 simulator repository contains a `./compile` helper script. To compile the
@@ -150,7 +262,7 @@ and then compile as:
 There is also a simple CMakeLists.txt file checked in if you prefer to use
 cmake.
 
-### Simulating
+#### Simulating
 
 Assuming your compiled binary is named `./cbp`, you can simulate one trace with
 1M instructions of warmup and up to 40M instructions of measurement like:
@@ -184,7 +296,7 @@ mkdir OUTDIR
 ./run_all ./cbp ./traces OUTDIR
 ```
 
-### Score Calculations
+#### Score Calculations
 
 There are several scripts intended to help calculate scores and make sense of
 the provided simulator metrics.
@@ -221,7 +333,7 @@ for VFS scoring), you may pass those (in that order) like:
 ./vfs.py 7,0.03,1500
 ```
 
-### Reference Predictor
+#### Reference Predictor
 
 The "reference" TAGE-SC-L predictor (from CBP 2025) was used to help us set the
 prediction accuracy portion of the VFS score's reference predictor. It is
@@ -255,7 +367,7 @@ To simulate all traces in the 'traces' directory:
 ./run_all ./reference ./traces OUTDIR
 ```
 
-## 'Training' Traces
+### 'Training' Traces
 
 You are encouraged to use the official set of 168 CBP-NG training traces,
 available for download at
