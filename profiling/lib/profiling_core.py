@@ -216,7 +216,7 @@ def get_predictor_size_bits(expr: str) -> int:
         pc_b, tag_b = params[0], params[1]
         ctr_b = params[6] if len(params) > 6 else 3
         return (1 << pc_b) * (4 * ctr_b + 3 * tag_b)
-    elif name == "tage_simpleL":
+    elif name == "tage_simpleL" or name == "tage_simple_satL":
         pc_b, tag_b = params[0], params[1]
         ctr_b = params[6] if len(params) > 6 else 3
         line_b = params[7] if len(params) > 7 else 4
@@ -239,5 +239,28 @@ def get_predictor_size_bits(expr: str) -> int:
         pc_b, bhr_b, ctr_b, _, line_b = params
         li = 1 << line_b
         return (1 << pc_b) * (bhr_b + 1) * li * ctr_b
+    elif name == "tage_biasL":
+        pc_b = params[0]
+        tag_b = params[1]
+        ctr_b = params[6] if len(params) > 6 else 3
+        line_b = params[7] if len(params) > 7 else 4
+        bias_b = params[8] if len(params) > 8 else 6
+        li = 1 << line_b
+        return (1 << pc_b) * (4 * ctr_b * li + 3 * tag_b) + (1 << bias_b) * 2 * li
+    elif name == "tage_bimodeL":
+        pc_b = params[0]
+        tag_b = params[1]
+        ctr_b = params[6] if len(params) > 6 else 3
+        line_b = params[7] if len(params) > 7 else 4
+        bias_b = params[8] if len(params) > 8 else 6
+        choice_b = params[10] if len(params) > 10 else 10
+        pht_b = params[11] if len(params) > 11 else 10
+        li = 1 << line_b
+        
+        choice_size = (1 << choice_b) * ctr_b * li
+        pht_size = 2 * (1 << pht_b) * ctr_b * li
+        tage_size = 3 * (1 << pc_b) * ((ctr_b * li) + tag_b)
+        bias_size = (1 << bias_b) * 2 * li
+        return choice_size + pht_size + tage_size + bias_size
     else:
         raise ValueError(f"Unknown predictor name: {name}")

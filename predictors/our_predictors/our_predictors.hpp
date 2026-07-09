@@ -24,3 +24,4 @@
 #include "tage_simple_uL.hpp"
 #include "tage_biasL.hpp"
 #include "tage_bimodeL.hpp"
+#include "tage_simple_satL.hpp"

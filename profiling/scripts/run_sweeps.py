@@ -57,6 +57,12 @@ SWEEP_CANDIDATES = {
         "perceptronL_LI16": [
             "perceptron_simpleL<5,15,8,83,4>", "perceptron_simpleL<6,7,8,83,4>",
             "perceptron_simpleL<7,3,8,83,4>"
+        ],
+        "tage_biasL": [
+            "tage_biasL<8,8,64,4,16,64,3,4,6,true,0>", "tage_biasL<8,12,64,4,16,64,3,4,6,true,0>", "tage_biasL<8,16,64,4,16,64,3,4,6,true,0>"
+        ],
+        "tage_bimodeL": [
+            "tage_bimodeL<7,8,64,4,16,64,3,4,6,true,8,8,8,true>", "tage_bimodeL<7,12,64,4,16,64,3,4,6,true,8,8,8,true>", "tage_bimodeL<7,16,64,4,16,64,3,4,6,true,8,8,8,true>"
         ]
     },
     "16KB": {
@@ -102,6 +108,12 @@ SWEEP_CANDIDATES = {
         "perceptronL_LI16": [
             "perceptron_simpleL<6,15,8,83,4>", "perceptron_simpleL<7,7,8,83,4>",
             "perceptron_simpleL<8,3,8,83,4>"
+        ],
+        "tage_biasL": [
+            "tage_biasL<9,8,64,4,16,64,3,4,6,true,0>", "tage_biasL<9,12,64,4,16,64,3,4,6,true,0>", "tage_biasL<9,16,64,4,16,64,3,4,6,true,0>"
+        ],
+        "tage_bimodeL": [
+            "tage_bimodeL<8,8,64,4,16,64,3,4,6,true,9,9,8,true>", "tage_bimodeL<8,12,64,4,16,64,3,4,6,true,9,9,8,true>", "tage_bimodeL<8,16,64,4,16,64,3,4,6,true,9,9,8,true>"
         ]
     }
 }
