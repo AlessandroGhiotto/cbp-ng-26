@@ -112,9 +112,10 @@
 \section{Introduction}
 \label{sec:introduction}
 
-In modern high-performance superscalar architectures, exploiting Instruction-Level Parallelism (ILP) relies heavily on the efficiency of the instruction fetch unit. Because out-of-order execution architectures must speculatively fetch and execute instructions after conditional branches to sustain throughput, any branch misprediction incurs a significant recovery penalty. This penalty involves flushing the pipeline and redirecting execution, which severely degrades the Instructions Per Cycle (IPC) and increases energy overhead. \textcolor{red}{Consequently, highly accurate and low-latency branch prediction is a critical design requirement for maximizing execution efficiency.}
+In modern high-performance superscalar architectures, exploiting Instruction-Level Parallelism (ILP) relies heavily on the efficiency of the instruction fetch unit. Because out-of-order execution architectures must speculatively fetch and execute instructions after conditional branches to sustain throughput, any branch misprediction incurs a significant recovery penalty. This penalty involves flushing the pipeline and redirecting execution, which severely degrades the Instructions Per Cycle (IPC) and increases energy overhead. Accurate and low-latency branch prediction is required for maximizing overall processor efficiency.
 
-The objective of this project is to evaluate the trade-offs in branch prediction architectures under tight hardware complexity constraints. Using the Hardware Complexity (\textbf{HARCOM}) library, we perform a comparative study of classic branch predictors established in the literature, including global-history-based models (Gshare~\cite{McFarling1993}, GAG, GAP~\cite{Yeh1991TwolevelAT}), local-history-based models (PAG, PAP~\cite{Yeh1991TwolevelAT}) and more sophisticated predictors (BiMode~\cite{lee1997bimode}, TAGE~\cite{seznec2006case}, Perceptron~\cite{jimenez2001dynamic}), alongside their line-wide extensions for block-level prediction. We explore the design parameter space (varying table configurations, counter widths, and history register lengths) subject to a strict memory budget. The evaluation focuses on maximizing the Voltage-Frequency-Scaled Speedup (\textbf{VFS}) metric~\cite{michaudvfs}, which models the processor performance by balancing prediction accuracy (Mispredictions Per Kilo-Instruction, \textbf{MPKI}), hardware \textbf{latency}, and energy consumption (Energy Per Instruction, \textbf{EPI}). Under the physical timing model in HARCOM, the energy, latency, and area costs of the predictor's logic and memory components are dynamically tracked.
+The objective of this project is to evaluate the trade-offs in branch prediction architectures under tight hardware complexity constraints. Using the Hardware Complexity (\textbf{HARCOM}) library, we perform a comparative study of classic branch predictors established in the literature, including global-history-based models (Gshare~\cite{McFarling1993}, GAG, GAP~\cite{Yeh1991TwolevelAT}), local-history-based models (PAG, PAP~\cite{Yeh1991TwolevelAT}) and more sophisticated predictors (BiMode~\cite{lee1997bimode}, TAGE~\cite{seznec2006case}, Perceptron~\cite{jimenez2001dynamic}), alongside their line-wide extensions for block-level prediction. We explore the design parameter space (varying table configurations, counter widths, and history register lengths) subject to a strict memory budget. The evaluation focuses on maximizing the Voltage-Frequency-Scaled Speedup (\textbf{VFS}) metric~\cite{michaudvfs}, which models the processor performance by balancing prediction accuracy (Mispredictions Per Kilo-Instruction, \textbf{MPKI}), hardware \textbf{latency}, and energy consumption (Energy Per Instruction, \textbf{EPI}). 
+% Under the physical timing model in HARCOM, the energy, latency, and area costs of the predictor's logic and memory components are dynamically tracked.
 
 % Specifically, the VFS score evaluates three primary design dimensions:
 % \begin{enumerate}
@@ -143,7 +144,7 @@ The objective of this project is to evaluate the trade-offs in branch prediction
 % \end{equation}
 % where $\beta = \frac{4\alpha}{(\alpha - 1)^2}$.
 
-Building upon this comparative study, we propose a filterting scheme for the state-of-the-art \textbf{TAGE}~\cite{seznec2006case} (Tagged Geometric History Length) architecture. TAGE achieves excellent prediction accuracy by indexing multiple tagged predictor tables with increasing history lengths, but this comes at the cost of high dynamic Energy Per Instruction (EPI) due to parallel SRAM lookups. To address this energy overhead, we propose to identify highly biased or stable branches and predict them using low-power base components, dynamically bypassing the TAGE tagged tables to minimize energy consumption and Stage 2 prediction latency.
+Building upon this comparative study, we propose a filterting scheme for the state-of-the-art \textbf{TAGE}~\cite{seznec2006case} (Tagged Geometric History Length) architecture. TAGE achieves excellent prediction accuracy by indexing multiple tagged predictor tables with increasing history lengths, but this comes at the cost of high dynamic Energy Per Instruction (EPI) due to parallel SRAM lookups. To address this energy overhead, we propose to identify highly biased or stable branches and predict them using simpler components, dynamically bypassing the TAGE tagged tables to minimize energy consumption and Stage 2 prediction latency.
 
 %-----------------------------------------------------------------------------
 % HARCOM FRAMEWORK AND PREDICTOR INTERFACE
@@ -161,7 +162,7 @@ The simulation environment is built upon the Hardware Complexity (HARCOM) librar
 
 The simulation interface separates the prediction and update processes. To minimize latency overhead on the processor's critical path, the interface supports \textbf{two-stage (two-level) prediction}. In Stage 1 (\texttt{predict1}), a fast, low-latency prediction is generated. In Stage 2 (\texttt{predict2}), a slower but more accurate prediction is computed, overriding the Stage 1 choice if they disagree. 
 
-Furthermore, to support superscalar fetch blocks where multiple instructions are fetched in a single clock cycle, HARCOM enables \textbf{line prediction} (block-level prediction). The first instruction of a block is predicted via \texttt{predict1/2}, which usually performs a big table lookup on the SRAM and store it on the registers, subsequent instructions are predicted via \texttt{reuse\_predict1/2}, by reusing that values we have already loaded. The updates are managed through the \texttt{update\_condbr} method (called after each conditional branch) and the \texttt{update\_cycle} method (called once per block to commit updates). 
+Furthermore, the interface enables \textbf{line prediction} (block-level prediction). The first instruction of a block is predicted via \texttt{predict1/2}, which usually performs a big table lookup on the SRAM and store it on the registers, subsequent instructions are predicted via \texttt{reuse\_predict1/2}, by reusing that values we have loaded previously. The updates are managed through the \texttt{update\_condbr} method (called after each conditional branch) and the \texttt{update\_cycle} method (called once per block to commit updates). 
 %A block ends when we have a taken branch, a misprediction, or when the predictor logic decides that the block ends (call \texttt{reuse\_prediction(0)}). Figure~\ref{fig:harcom-interface} illustrates the flowchart of the interface calls within the simulator.
 
 \begin{figure}[htbp]
@@ -222,7 +223,7 @@ Simple global-history predictors (\texttt{gshareL}, \texttt{gapL}, and \texttt{g
 
 \vspace{0.2cm}
 \textbf{Block vs. Scalar Predictors.} \\
-Block-level predictors (suffix \texttt{L}) fetch and predict multiple instructions in a single cycle (up to 16 instructions, as $LI=16$) by reusing the active SRAM row, leading to a massive IPC boost (ranging from 3.0 to 4.85) compared to scalar models (which are strictly limited to an IPC range of 0.49--0.98). More importantly, this throughput dominance translates directly into energy efficiency. For example, the block-level \texttt{gshareL} (16~KB) achieves an EPI of 145.5~fJ, which is nearly half the EPI of its scalar counterpart \texttt{gshare} (263.2~fJ), despite executing at a 7x higher IPC. This occurs because scalar predictors must perform a separate SRAM read access for every single instruction, whereas block predictors amortize a single wide SRAM row read over the entire fetch block, fetching subsequent predictions from low-power registers (using \texttt{reuse\_predict1/2}). This reduction in active SRAM accesses results in a 3.0x--5.64x speedup in VFS score for block-level models over their scalar counterparts.
+Block-level predictors (suffix \texttt{L}) fetch and predict multiple instructions in a single cycle (up to 16 instructions, as $LI=16$) by reusing the active SRAM row, leading to a massive IPC boost (ranging from 3.0 to 4.85) compared to scalar models (which are strictly limited to an IPC range of 0.49--0.98). More importantly, this throughput dominance translates directly into energy efficiency. For example, the block-level \texttt{gshareL} (16~KB) achieves an EPI of 145~fJ, which is nearly half the EPI of its scalar counterpart \texttt{gshare} (263~fJ), despite executing at a 7x higher IPC. This occurs because scalar predictors must perform a separate SRAM read access for every single instruction, whereas block predictors amortize a single wide SRAM row read over the entire fetch block, fetching subsequent predictions from low-power registers (using \texttt{reuse\_predict1/2}). This reduction in active SRAM accesses results in a 3.0x--5.6x speedup in VFS score for block-level models over their scalar counterparts.
 
 \vspace{0.2cm}
 \textbf{Predictor Groups and Behaviors.} \\
@@ -230,7 +231,7 @@ The global-indexed models (\texttt{gap}, \texttt{gag}, and \texttt{gshare}) beha
 
 \vspace{0.2cm}
 \textbf{The 16 KB vs. 8 KB Budget Trade-off.} \\
-Doubling the budget from 8 KB to 16 KB reduces the branch misprediction rate. However, under HARCOM's physical timing and energy model, a larger budget is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and dynamic/static energy (e.g., \texttt{tageL} EPI increases from 939.6 fJ at 8 KB to 1145.5 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.7101 to 0.6988).
+Doubling the budget from 8 KB to 16 KB reduces the branch misprediction rate. However, under HARCOM's physical timing and energy model, a larger budget is not guaranteed to improve the VFS score. Higher capacity increases SRAM access latency and dynamic/static energy (e.g., \texttt{tageL} EPI increases from 939 fJ at 8 KB to 1145 fJ at 16 KB). As a result, the average VFS score for several predictors actually degrades when moving from 8 KB to 16 KB (e.g., \texttt{tageL} VFS drops from 0.7101 to 0.6988).
 
 \subsection{Our Proposal}
 Building upon the trade-off analysis of block-level TAGE predictors, we propose three distinct TAGE variants designed to optimize energy efficiency and prediction throughput:
@@ -241,7 +242,7 @@ This variant replaces the simple bimodal base predictor ($t_0$) with a choice-di
 
 \vspace{0.2cm}
 \textbf{TAGE bias.} \\
-To filter biased branches, we integrate a small, dedicated bias table (inspired by Bi-Mode++~\cite{kise2005bimode}) as a first-level filter. Strongly biased branches skip base-table updates and are predicted early. While this keeps the TAGE table size intact and achieves a highly accurate 5.25 MPKI and a lower EPI (932.8~fJ vs. 1145.5~fJ for \texttt{tageL}), it incurs a substantial IPC penalty (2.8389 vs. 4.7048). 
+To filter biased branches, we integrate a small, dedicated bias table (inspired by Bi-Mode++~\cite{kise2005bimode}) as a first-level filter. Strongly biased branches skip base-table updates and are predicted early. While this keeps the TAGE table size intact and achieves a highly accurate 5.25 MPKI and a lower EPI (932~fJ vs. 1145~fJ for \texttt{tageL}), it incurs a substantial IPC penalty (2.8389 vs. 4.7048). 
 % Under HARCOM's physical timing model, the sequential dependency of the bias table lookup and prediction logic stretches the Stage 1 combinational critical path past the 300~ps clock period constraint, forcing Stage 1 to take 2 cycles instead of 1.
 
 \vspace{0.2cm}
@@ -257,7 +258,7 @@ The experimental results show that \texttt{tage\_satL} is highly competitive:
 
 
 \begin{table*}[htbp]
-    \caption{\textbf{Block Predictor VFS Scores Per Trace Breakdown (8 KB Budget)}}
+    \caption{\textbf{Block Predictor VFS Scores Per Trace (8 KB Budget)}}
     \centering
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{|lcccccccccccc|c|}
@@ -286,7 +287,7 @@ The experimental results show that \texttt{tage\_satL} is highly competitive:
 \end{table*}
 
 \begin{table*}[htbp]
-    \caption{\textbf{Block Predictor VFS Scores Per Trace Breakdown (16 KB Budget)}}
+    \caption{\textbf{Block Predictor VFS Scores Per Trace (16 KB Budget)}}
     \centering
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{|lcccccccccccc|c|}
@@ -313,6 +314,11 @@ The experimental results show that \texttt{tage\_satL} is highly competitive:
     }
     \label{table:block_16kb_vfs}
 \end{table*}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This project began with a broad study of classic branch prediction literature, identifying the trade-offs between prediction accuracy, latency, and hardware complexity. Our analysis highlighted that while the SotA TAGE predictor offers exceptional accuracy, its energy overhead (EPI) is substantial. To optimize this, we proposed simple bypassing schemes, such as a saturation-based filtering applied to the bimodal base predictor, which successfully trade a small amount of accuracy for EPI and latency savings. As future work, an idea could be to implement a collection of smaller, specialized predictors tailored to different branch behaviors. This would allow the system to select the most cost-effective predictor for each branch type, further reducing the energy and area overhead of relying entirely on a monolithic TAGE architecture.
 
 \clearpage
 
