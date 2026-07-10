@@ -1,0 +1,48 @@
+digraph TAGE {
+    rankdir=TB;
+    fontname="Helvetica,Arial,sans-serif";
+    node [fontname="Helvetica,Arial,sans-serif", fontsize=10, shape=box, style="filled,rounded", fillcolor="#f0f4f8", color="#142b68", penwidth=1.5];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9, color="#142b68", penwidth=1.2];
+    
+    // Inputs
+    PC [label="Block PC", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    GHR [label="Global History Register (GHR)", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    
+    // XOR nodes for Tagged Tables index/tag
+    Xor1 [label="⊕", shape=circle, width=0.3, height=0.3, fixedsize=true, fillcolor="#e1f5fe"];
+    Xor2 [label="⊕", shape=circle, width=0.3, height=0.3, fixedsize=true, fillcolor="#e1f5fe"];
+    Xor3 [label="⊕", shape=circle, width=0.3, height=0.3, fixedsize=true, fillcolor="#e1f5fe"];
+    
+    // Tables
+    T0 [label="Base Table T0\n(Bimodal, No Tag)\n(History: 0)", fillcolor="#e8f5e9", color="#2e7d32"];
+    T1 [label="Tagged Table T1\n(Short History: 4 bits)\n[Tag, Counter, u-bit]", fillcolor="#ffe0b2", color="#e65100"];
+    T2 [label="Tagged Table T2\n(Medium History: 16 bits)\n[Tag, Counter, u-bit]", fillcolor="#ffe0b2", color="#e65100"];
+    T3 [label="Tagged Table T3\n(Long History: 64 bits)\n[Tag, Counter, u-bit]", fillcolor="#ffe0b2", color="#e65100"];
+    
+    // Logic
+    Match [label="Tag Match & Priority Selection Mux\n(T3 > T2 > T1 > T0)", shape=invtrapezium, fillcolor="#bbdefb", color="#0d47a1", fixedsize=true, width=3.0, height=0.8];
+    
+    // Output
+    Output [label="1-bit Prediction\n(Taken/Not-Taken)", shape=ellipse, fillcolor="#e1f5fe", style=filled];
+    
+    // Connections
+    PC -> T0 [label="Index"];
+    PC -> Xor1;
+    PC -> Xor2;
+    PC -> Xor3;
+    
+    GHR -> Xor1 [label="  GHR[0:3]"];
+    GHR -> Xor2 [label="  GHR[0:15]"];
+    GHR -> Xor3 [label="  GHR[0:63]"];
+    
+    Xor1 -> T1 [label="Index/Tag"];
+    Xor2 -> T2 [label="Index/Tag"];
+    Xor3 -> T3 [label="Index/Tag"];
+    
+    T0 -> Match [label="Fallback Prediction"];
+    T1 -> Match [label="Match/Pred"];
+    T2 -> Match [label="Match/Pred"];
+    T3 -> Match [label="Match/Pred"];
+    
+    Match -> Output;
+}

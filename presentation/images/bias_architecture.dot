@@ -1,0 +1,32 @@
+digraph BiasPredictor {
+    rankdir=TB;
+    fontname="Helvetica,Arial,sans-serif";
+    node [fontname="Helvetica,Arial,sans-serif", fontsize=10, shape=box, style="filled,rounded", fillcolor="#f0f4f8", color="#142b68", penwidth=1.5];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9, color="#142b68", penwidth=1.2];
+    
+    // Inputs
+    PC [label="Program Counter (PC)", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    
+    // Bias Table
+    BiasTable [label="Bias Table\n(Bi-Mode++ Filter)", fillcolor="#e8f5e9", color="#2e7d32"];
+    
+    // Decision logic
+    IsBiased [label="Is Strongly Biased?", shape=diamond, fillcolor="#ffe0b2", color="#e65100"];
+    
+    // Main Predictor
+    MainTAGE [label="Main TAGE Predictor\n(Tagged Tables lookup)", fillcolor="#f5f5f5", color="#616161"];
+    
+    // Output selector Mux
+    Mux [label="Prediction Source Mux", shape=invtrapezium, fillcolor="#bbdefb", color="#0d47a1", fixedsize=true, width=1.8, height=0.6];
+    Output [label="Prediction Output", shape=ellipse, fillcolor="#e1f5fe", style=filled];
+    
+    // Connections
+    PC -> BiasTable [label="Index"];
+    BiasTable -> IsBiased;
+    
+    IsBiased -> Mux [label="Yes (Bypass Main TAGE)", color="#2e7d32", fontcolor="#2e7d32"];
+    IsBiased -> MainTAGE [label="No (Normal Lookup)", color="#e65100", fontcolor="#e65100"];
+    MainTAGE -> Mux [label="TAGE Prediction"];
+    
+    Mux -> Output;
+}

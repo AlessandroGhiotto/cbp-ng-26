@@ -1,0 +1,41 @@
+digraph BiMode {
+    rankdir=TB;
+    fontname="Helvetica,Arial,sans-serif";
+    node [fontname="Helvetica,Arial,sans-serif", fontsize=10, shape=box, style="filled,rounded", fillcolor="#f0f4f8", color="#142b68", penwidth=1.5];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9, color="#142b68", penwidth=1.2];
+    
+    // Inputs
+    PC [label="Program Counter (PC)", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    BHR [label="Branch History Register (BHR)", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    
+    // XOR nodes
+    Xor1 [label="⊕", shape=circle, width=0.3, height=0.3, fixedsize=true, fillcolor="#e1f5fe"];
+    Xor2 [label="⊕", shape=circle, width=0.3, height=0.3, fixedsize=true, fillcolor="#e1f5fe"];
+    
+    // Tables
+    ChoicePred [label="Choice Predictor Table\n(Bi-Mode Base)", fillcolor="#e8f5e9", color="#2e7d32"];
+    TPHT [label="Taken Direction Table\n(T-PHT)", fillcolor="#ffe0b2", color="#e65100"];
+    NTPHT [label="Not-Taken Direction Table\n(NT-PHT)", fillcolor="#ffe0b2", color="#e65100"];
+    
+    // Selector MUX
+    Mux [label="Mux", shape=invtrapezium, fillcolor="#bbdefb", color="#0d47a1", fixedsize=true, width=1.2, height=0.6];
+    
+    // Output
+    Output [label="Prediction Output", shape=ellipse, fillcolor="#e1f5fe", style=filled];
+    
+    // Connections
+    PC -> ChoicePred [label="Index"];
+    PC -> Xor1;
+    BHR -> Xor1;
+    Xor1 -> TPHT [label="Index"];
+    
+    PC -> Xor2;
+    BHR -> Xor2;
+    Xor2 -> NTPHT [label="Index"];
+    
+    ChoicePred -> Mux [label="Choice Bit\n(Selects T/NT)", fontcolor="#2e7d32", color="#2e7d32"];
+    TPHT -> Mux [label="Taken Counter"];
+    NTPHT -> Mux [label="Not-Taken Counter"];
+    
+    Mux -> Output;
+}

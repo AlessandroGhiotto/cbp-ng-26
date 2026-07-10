@@ -1,0 +1,41 @@
+digraph TAGE_sat_simplified {
+    rankdir=TB;
+    fontname="Helvetica,Arial,sans-serif";
+    node [fontname="Helvetica,Arial,sans-serif", fontsize=10, shape=box, style="filled,rounded", fillcolor="#f0f4f8", color="#142b68", penwidth=1.5];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9, color="#142b68", penwidth=1.2];
+    
+    // Inputs
+    PC [label="Block PC", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    GHR [label="Global History", shape=ellipse, fillcolor="#142b68", fontcolor=white, style=filled];
+    
+    // Base Table
+    T0 [label="Base Table T0\n(Bimodal, No Tag)\n(3-bit counters)", fillcolor="#e8f5e9", color="#2e7d32"];
+    
+    // Saturation Bypass Logic
+    BypassLogic [label="Saturation Bypass Logic\nIs counter saturated (0 or 7)?", fillcolor="#ffcdd2", color="#c62828"];
+    
+    // Abstract Standard TAGE block
+    TAGE [label="Standard TAGE Predictor\n(3 Tagged Tables: T1, T2, T3)\n(Short, Medium, Long GHR)", fillcolor="#ffe0b2", color="#e65100"];
+    
+    // Selection Mux
+    Mux [label="Priority Selection Mux", shape=invtrapezium, fillcolor="#bbdefb", color="#0d47a1", fixedsize=true, width=1.5, height=0.6];
+    
+    // Output
+    Output [label="1-bit Prediction\n(Taken/Not-Taken)", shape=ellipse, fillcolor="#e1f5fe", style=filled];
+    
+    // Connections
+    PC -> T0 [label="Index"];
+    T0 -> BypassLogic [label="Counter Value"];
+    
+    // Control path (Bypass)
+    BypassLogic -> TAGE [label="  Read Enable\n  (If counter = 1..6)", fontcolor="#c62828", color="#c62828", style=dashed];
+    
+    // Data paths
+    PC -> TAGE [label="Block PC"];
+    GHR -> TAGE;
+    
+    T0 -> Mux [label="Fallback Pred"];
+    TAGE -> Mux [label="Tagged Hit Pred"];
+    
+    Mux -> Output;
+}
