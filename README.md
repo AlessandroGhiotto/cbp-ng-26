@@ -1,6 +1,6 @@
 # Design and Optimization of a High-Performance and Energy-Efficient Branch Predictor in HARCOM
 
-### Politecnico di Milano — MSc in High-Performance Computing Engineering (A.Y. 2025-2026)
+### Politecnico di Milano — MSc in HPC Engineering
 
 - **Authors:** Roberto Di Lauro, Alessandro Ghiotto
 - **Advisors:** Marco Ronzani (PHD), Prof. Cristina Silvano
@@ -18,7 +18,7 @@ The project covers a comparative analysis of classic branch predictors alongside
 
 1. **Comparative Study:** Implemented and evaluated classic global-history-based models (Gshare, GAG, GAP), local-history-based models (PAG, PAP), and advanced models (Bi-Mode, TAGE, Perceptron).
 2. **Block-level vs. Scalar Predictors:** Moving from scalar prediction (one instruction/cycle) to block-level prediction (line-wide prediction up to 16 instructions/cycle using `predict1/2` and `reuse_predict1/2` interfaces) achieves a massive IPC improvement (up to 3.0x–4.85x speedup) and nearly halves the energy consumption (EPI) by fetching subsequent predictions from low-power registers rather than executing sequential SRAM reads.
-3. **Advanced TAGE Optimization Proposals:**
+3. **TAGE Optimization Proposals:**
    - **TAGE bimode:** Replaces the bimodal base predictor with a Bi-Mode predictor to increase accuracy. However, under tight 8KB/16KB budgets, the tables consumed too much storage, degrading TAGE tagged table capacity and increasing mispredictions.
    - **TAGE bias:** Introduces a small, dedicated sequential bias table as a first-level filter. Strongly biased branches skip the bimodal/tagged updates, reducing EPI but introducing a Stage 1 latency bottleneck (increasing Stage 1 from 1 to 2 cycles under HARCOM timing rules).
    - **TAGE sat (Our Best Design):** Introduces a saturation-based bypass scheme using the existing bimodal base table counters. Fully saturated counters bypass the Stage 2 TAGE tagged RAM lookups. This eliminates Stage 2 read latency, achieves the highest average IPC (4.85), and reduces EPI by **14.6%** (16KB) and **21.3%** (8KB) compared to baseline TAGE.
@@ -76,7 +76,7 @@ The [profiling](profiling) directory contains scripts, outputs, and notebooks us
 To compile any of our custom predictors:
 
 ```bash
-./compile cbp -DPREDICTOR="<predictor_class_name><>"
+./compile cbp -DPREDICTOR="<predictor_class_name><<template parameters>>"
 ```
 
 ### Examples:
@@ -87,11 +87,11 @@ To compile any of our custom predictors:
   ```
 - Compile a simple block-based Gshare:
   ```bash
-  ./compile cbp -DPREDICTOR="gshare_simpleL<>"
+  ./compile cbp -DPREDICTOR="gshare_simpleL<8>"
   ```
 - Compile a scalar Bi-Mode predictor:
   ```bash
-  ./compile cbp -DPREDICTOR="bimode_simple<>"
+  ./compile cbp -DPREDICTOR="bimode_simple<8,6>"
   ```
 
 Once compiled, you can run the simulator on a trace (e.g., using the training traces):
