@@ -58,7 +58,7 @@
     \begin{block}{Goals}
         \begin{itemize}
             \item \textbf{Exploration:} benchmark classical global and local history predictors under strict \textbf{8~KB} and \textbf{16~KB} HW budgets.
-            \item \textbf{TAGE Proposal:} design and evaluate an optimized low-power version of TAGE (\textbf{TAGE~sat}).
+            \item \textbf{TAGE Proposal:} design and evaluate an optimized low-power version of TAGE.
             \item \textbf{Optimization Target:} maximize VFS Speedup (balancing accuracy, latency, and energy over 12 CBP-NG benchmarks).
         \end{itemize}
     \end{block}
@@ -71,7 +71,7 @@
         \begin{block}{SRAM Access Amortization}
             \begin{itemize}
                 \item \textbf{Scalar Bottleneck:} a SRAM lookup per instruction limits the IPC to less than 1.0.
-                \item \textbf{Block Prediction (L):} predicts up to $LI = 16$ instructions in a single wide SRAM row access.
+                \item \textbf{Block Prediction:} predicts up to $16$ instructions in a single wide SRAM row access.
                 \item \textbf{Register Reuse:} store active row bits to skip subsequent lookups.
                 \item \textbf{Benefits:} increase IPC and decrease EPI.
             \end{itemize}
@@ -265,13 +265,13 @@
         \begin{itemize}
             \item \textbf{Block-Level Advantage:} crucial for increasing IPC and decreasing EPI.
             \item \textbf{TAGE Saturation Bypass:} achieves peak throughput (\textbf{4.85 IPC}) and cuts EPI by 14.6\%--21.3\%.
-            \item \textbf{Complexity Penalty:} additional components may degrade timing and storage efficiency.
+            \item \textbf{Complexity Penalty:} architectural extensions may degrade timing and storage efficiency.
         \end{itemize}
     \end{block}
     \begin{block}{Other ideas}
         \begin{itemize}
-            \item \textbf{Predictor Hybridization:} combine smaller, specialized predictors.
-            \item \textbf{Dynamic Steering:} send branches to the simplest accurate predictor to save energy.
+            \item \textbf{Predictor Hybridization:} combine smaller, specialized predictors. \\
+            Send branches to the simplest accurate predictor to save energy.
         \end{itemize}
     \end{block}
 \end{frame}
