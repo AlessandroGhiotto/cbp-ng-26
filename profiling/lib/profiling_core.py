@@ -216,7 +216,7 @@ def get_predictor_size_bits(expr: str) -> int:
         pc_b, tag_b = params[0], params[1]
         ctr_b = params[6] if len(params) > 6 else 3
         return (1 << pc_b) * (4 * ctr_b + 3 * tag_b)
-    elif name == "tage_simpleL" or name == "tage_simple_satL":
+    elif name == "tage_simpleL" or name == "tage_simple_satL" or name == "tage_simple_satNL":
         pc_b, tag_b = params[0], params[1]
         ctr_b = params[6] if len(params) > 6 else 3
         line_b = params[7] if len(params) > 7 else 4
