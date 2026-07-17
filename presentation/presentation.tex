@@ -47,15 +47,15 @@
     \tableofcontents
 \end{frame}
 
-\section{Introduction \& Objectives}
-\begin{frame}{Introduction \& Objectives}
-    \begin{block}{Background \& Problem}
+\section{Introduction}
+\begin{frame}{Introduction}
+    \begin{block}{Background}
         \begin{itemize}
-            \item \textbf{Speculative Execution:} critical for modern out-of-order superscalar performance.
+            \item \textbf{Speculative Execution:} critical for modern superscalar performance.
             \item \textbf{Misprediction Cost:} pipeline flushes cause severe IPC loss and energy waste.
         \end{itemize}
     \end{block}
-    \begin{block}{Project Goals}
+    \begin{block}{Goals}
         \begin{itemize}
             \item \textbf{Exploration:} benchmark classical global and local history predictors under strict \textbf{8~KB} and \textbf{16~KB} HW budgets.
             \item \textbf{TAGE Proposal:} design and evaluate an optimized low-power version of TAGE (\textbf{TAGE~sat}).
@@ -65,22 +65,22 @@
 \end{frame}
 
 \section{Block-Level Prediction}
-\begin{frame}{Block-Level Prediction: Amortizing Lookup Overhead}
+\begin{frame}{Block-Level Prediction}
     \begin{columns}[T]
-        \column{0.50\textwidth}
+        \column{0.45\textwidth}
         \begin{block}{SRAM Access Amortization}
             \begin{itemize}
                 \item \textbf{Scalar Bottleneck:} a SRAM lookup per instruction limits the IPC to less than 1.0.
                 \item \textbf{Block Prediction (L):} predicts up to $LI = 16$ instructions in a single wide SRAM row access.
-                \item \textbf{Register Reuse:} cache active row bits to skip subsequent lookups.
+                \item \textbf{Register Reuse:} store active row bits to skip subsequent lookups.
                 \item \textbf{Benefits:} increase IPC and decrease EPI.
             \end{itemize}
         \end{block}
-        \column{0.50\textwidth}
+        \column{0.5\textwidth}
         \vspace*{-0.15cm}
         \IfFileExists{images/interface-flowchart.pdf}{%
             \begin{center}
-                \includegraphics[width=1.04\textwidth, height=6.4cm, keepaspectratio]{images/interface-flowchart.pdf}
+                \includegraphics[width=1.08\textwidth, height=7.5cm, keepaspectratio]{images/interface-flowchart.pdf}
             \end{center}
         }{%
             \small\textcolor{gray}{\textit{[predictor interface]}}
@@ -99,20 +99,20 @@
     \end{columns}
 \end{frame}
 
-\section{The TAGE Predictor \& Energy Challenges}
-\begin{frame}{The TAGE Predictor \& Energy Challenges}
+\section{TAGE}
+\begin{frame}{TAGE}
     \small
     \begin{columns}[T]
         \column{0.52\textwidth}
         \begin{block}{Accuracy \& Energy Challenges}
             \begin{itemize}
-                \item \textbf{Geometric History:} captures long-term correlations.
+                % \item \textbf{Geometric History:} captures long-term correlations.
                 \item \textbf{Base predictor ($T_0$):} bimodal.
-                \item \textbf{3 Tagged Tables ($T_1, T_2, T_3$):} hist. of 4, 16, 64 bits.
-                \item \textbf{Replacement:} refined usefulness ($u$) tracking.
-                \item \textbf{Accuracy:} peak at \textbf{4.19 MPKI} (\texttt{tage\_uL}) \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
-                \item \textbf{Parallel Lookup:} concurrent reads to $T_1, T_2, T_3$ in Stage 2.
-                \item \textbf{High EPI:} \texttt{tageL} at \textbf{1145.5 fJ} ($\approx 8\times$ vs. \texttt{gshareL}) \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
+                \item \textbf{3 Tagged Tables ($T_1, T_2, T_3$):} history of 4, 16, 64 bits.
+                \item \textbf{Replacement:} useful bit ($u$).
+                \item \textbf{Accuracy:} peak at \hyperlink{block_16kb}{\textbf{4.19 MPKI}} (\texttt{tage\_uL}). 
+                % \item \textbf{Parallel Lookup:} concurrent reads to $T_1, T_2, T_3$ in Stage 2.
+                \item \textbf{High EPI:} \texttt{tageL} at \hyperlink{block_16kb}{\textbf{1145 fJ}} ($\approx 8\times$ vs. \texttt{gshareL}) .
             \end{itemize}
         \end{block}
 
@@ -129,14 +129,14 @@
 \end{frame}
 
 \section{Proposed Methodologies}
-\subsection{TAGE Bimode}
-\begin{frame}{Proposed Methodologies: TAGE Bimode}
+\subsection{TAGE bimode}
+\begin{frame}{Proposed Methodologies: TAGE bimode}
     \small
     \begin{columns}[T]
         \column{0.52\textwidth}
-        \begin{block}{Concept \& Motivation}
+        \begin{block}{Idea}
             \begin{itemize}
-                \item \textbf{Choice-Directed Base Table:} splits predictions into separate taken/not-taken tables.
+                \item \textbf{Choice Table:} splits predictions into separate taken/not-taken tables.
                 \item \textbf{Design Role:} integrated as the base table ($T_0$) for the TAGE predictor framework.
             \end{itemize}
         \end{block}
@@ -144,7 +144,7 @@
         \begin{block}{Resource Constraints \& Aliasing}
             \begin{itemize}
                 \item \textbf{Storage Overhead:} base table consumes \textbf{64\%} of the total storage budget.
-                \item \textbf{Aliasing Penalty:} forces short tags (8-bit) $\rightarrow$ severe aliasing (\textbf{9.74 MPKI}) and high power (\textbf{1587.4 fJ EPI}) \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
+                \item \textbf{Aliasing Penalty:} forces short tags (8-bit) $\rightarrow$ severe aliasing (\textbf{9.74 MPKI}) and high power (\hyperlink{block_16kb}{\textbf{1587 fJ EPI}}).
             \end{itemize}
         \end{block}
 
@@ -160,22 +160,22 @@
     \end{columns}
 \end{frame}
 
-\subsection{TAGE Bias}
-\begin{frame}{Proposed Methodologies: TAGE Bias}
+\subsection{TAGE bias}
+\begin{frame}{Proposed Methodologies: TAGE bias}
     \small
     \begin{columns}[T]
         \column{0.52\textwidth}
-        \begin{block}{Concept \& Motivation}
+        \begin{block}{Idea}
             \begin{itemize}
-                \item \textbf{Bias Filter Table:} employs a dedicated table to identify strongly biased branches early.
-                \item \textbf{Power Savings Path:} directly resolves predictions from registers, bypassing expensive TAGE SRAM lookups.
+                \item \textbf{Bias Filter Table:} employs a dedicated table to identify strongly biased branches.
+                \item \textbf{Power Savings:} bypass expensive TAGE SRAM lookups.
             \end{itemize}
         \end{block}
         \vspace{0.05cm}
-        \begin{block}{Critical Path \& Latency Penalty}
+        \begin{block}{Latency Penalty}
             \begin{itemize}
-                \item \textbf{Serialization:} sequential checking of the bias table in Stage 1 extends the critical path ($>300$ ps).
-                \item \textbf{Throughput Drop:} halves the operating frequency $\rightarrow$ IPC drops to \textbf{2.83} \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
+                \item \textbf{Serialization:} sequential checking of the bias table in Stage 1 extends the critical path.
+                \item \textbf{Throughput Drop:} halves the operating frequency $\rightarrow$ IPC drops to \hyperlink{block_16kb}{\textbf{2.83}}.
             \end{itemize}
         \end{block}
 
@@ -191,22 +191,22 @@
     \end{columns}
 \end{frame}
 
-\subsection{TAGE Sat}
-\begin{frame}{Our Final Proposal: TAGE sat (Saturation Bypass)}
+\subsection{TAGE sat}
+\begin{frame}{Our Final Proposal: TAGE sat}
     \small
     \begin{columns}[T]
         \column{0.52\textwidth}
-        \begin{block}{Core Mechanism}
+        \begin{block}{Idea}
             \begin{itemize}
-                \item \textbf{Bypass Condition:} saturated bimodal base counters (0 or max) $\rightarrow$ strongly biased.
-                \item \textbf{Dynamic Bypass:} bypasses tagged SRAM lookups ($t_1, t_2, t_3$).
+                \item \textbf{Bypass Condition:} check if the bimodal base counters is saturated (strongly biased).
+                \item \textbf{Dynamic Bypass:} skip tagged SRAM lookups ($t_1, t_2, t_3$).
             \end{itemize}
         \end{block}
         \vspace{0.05cm}
-        \begin{block}{Throughput \& Power Optimization}
+        \begin{block}{Benefits}
             \begin{itemize}
-                \item \textbf{Throughput:} bypasses Stage 2 SRAM latency $\rightarrow$ \textbf{4.85 IPC} \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
-                \item \textbf{Power:} disables tagged table SRAM reads $\rightarrow$ cuts EPI by \textbf{14.6\% -- 21.3\%} \hyperlink{block_16kb}{\beamerbutton{16KB Table}}.
+                \item \textbf{Throughput:} bypasses Stage 2 SRAM latency $\rightarrow$ \hyperlink{block_16kb}{\textbf{4.85 IPC}}.
+                \item \textbf{Power:} disables tagged table SRAM reads $\rightarrow$ cuts EPI by \hyperlink{block_16kb}{\textbf{14.6\% -- 21.3\%}}.
             \end{itemize}
         \end{block}
 
@@ -226,10 +226,10 @@
 \begin{frame}[label=main_results]{Experimental Evaluation (16 KB Budget)}
     \begin{columns}[T]
         \column{0.44\textwidth}
-        \begin{block}{Key Results \& Insights}
+        \begin{block}{Results}
             \begin{itemize}
                 \item \textbf{Peak IPC:} \texttt{tage\_satL} achieves the highest throughput (\textbf{4.85} vs. 4.70).
-                \item \textbf{Energy Savings:} \texttt{tage\_satL} cuts EPI by \textbf{14.6\%} (16~KB) and \textbf{21.3\%} (8~KB) vs. \texttt{tageL} \hyperlink{block_8kb}{\beamerbutton{8KB Table}}.
+                \item \textbf{Energy Savings:} \texttt{tage\_satL} cuts EPI by \textbf{14.6\%} vs. \texttt{tageL}.
                 \item \textbf{VFS Trade-off:} \texttt{tageL} leads VFS (0.6988) due to better accuracy (5.42 MPKI).
                 % \item \textbf{Block vs. Scalar:} Up to \textbf{5.6x VFS speedup} via line-wide prediction \hyperlink{speedup_table}{\beamerbutton{Speedup Table}}.
             \end{itemize}
@@ -259,16 +259,16 @@
     \end{columns}
 \end{frame}
 
-\section{Conclusions \& Future Work}
-\begin{frame}{Conclusions \& Future Work}
-    \begin{block}{Conclusions}
+\section{Conclusions}
+\begin{frame}{Conclusions}
+    \begin{block}{Results}
         \begin{itemize}
             \item \textbf{Block-Level Advantage:} crucial for increasing IPC and decreasing EPI.
             \item \textbf{TAGE Saturation Bypass:} achieves peak throughput (\textbf{4.85 IPC}) and cuts EPI by 14.6\%--21.3\%.
-            \item \textbf{Complexity Penalty:} complex add-ons degrade timing and storage efficiency.
+            \item \textbf{Complexity Penalty:} additional components may degrade timing and storage efficiency.
         \end{itemize}
     \end{block}
-    \begin{block}{Future Directions}
+    \begin{block}{Other ideas}
         \begin{itemize}
             \item \textbf{Predictor Hybridization:} combine smaller, specialized predictors.
             \item \textbf{Dynamic Steering:} send branches to the simplest accurate predictor to save energy.
