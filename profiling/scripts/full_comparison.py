@@ -101,7 +101,7 @@ CONFIGS = {
         "perceptronL_LI4":  "perceptron_simpleL<8,7,8,83,2>",  # 65536 exact (LI=4)
         "perceptronL_LI16": "perceptron_simpleL<7,3,8,83,4>",   # 65536 exact (LI=16)
         "tage_biasL":       "tage_biasL<8,8,64,4,16,64,3,4,6,true,0>",
-        "tage_bimodeL":     "tage_bimodeL<7,8,64,4,16,64,3,4,6,true,8,8,8,true>",
+        "tage_bimodeL":     "tage_bimodeL<7,8,64,4,16,64,3,4,6,true,8,8,8,false>",
         "tage_simple_satL": "tage_simple_satL<8,20,64,4,16,64,2,4,0>",
     },
     "16KB": {
@@ -129,7 +129,7 @@ CONFIGS = {
         "perceptronL_LI4":  "perceptron_simpleL<9,7,8,83,2>",  # 131072 exact (LI=4)
         "perceptronL_LI16": "perceptron_simpleL<8,3,8,83,4>",   # 131072 exact (LI=16)
         "tage_biasL":       "tage_biasL<9,16,64,4,16,64,3,4,6,true,0>",
-        "tage_bimodeL":     "tage_bimodeL<8,8,64,4,16,64,3,4,6,true,9,9,8,true>",
+        "tage_bimodeL":     "tage_bimodeL<8,8,64,4,16,64,3,4,6,true,9,9,8,false>",
         "tage_simple_satL": "tage_simple_satL<9,12,64,4,16,64,3,4,0>",
     },
 }

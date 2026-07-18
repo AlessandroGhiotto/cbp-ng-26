@@ -23,7 +23,7 @@ template <
     u64 CHOICE_B = 10,         // Choice PHT index size for Bi-Mode base
     u64 PHT_B = 10,            // Taken/Not-Taken PHT index size for Bi-Mode base
     u64 T0_BHR_B = 8,          // BHR bits to XOR with PC for Bi-Mode base index
-    bool USE_BIAS = true       // Enable bias table prefilter
+    bool USE_BIAS = false      // Enable bias table prefilter
     >
 struct tage_bimodeL : predictor
 {

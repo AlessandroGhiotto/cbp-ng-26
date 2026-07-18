@@ -219,13 +219,13 @@ Doubling the budget from 8 KB to 16 KB reduces the branch misprediction rate, bu
     \texttt{tage\_uL}       & 16 KB  & 0.667 & \textbf{4.19} & 4.27 & 933 \\
     \texttt{gshareL}       & 16 KB  & 0.659 & 4.93 & 3.49 & \textbf{146} \\
     \texttt{tage\_biasL}       & 16 KB  & 0.546 & 5.25 & 2.84 & 933 \\
-    \texttt{tage\_bimodeL}       & 16 KB  & 0.471 & 9.74 & 2.59 & 1587 \\
+    \texttt{tage\_bimodeL}       & 16 KB  & 0.526 & 5.64 & 2.76 & 1369 \\
     \hline
     \texttt{tageL}       & 8 KB  & \textbf{0.710} & 5.80 & 4.78 & 940 \\
     \texttt{tage\_satL}       & 8 KB  & 0.676 & 8.01 & \textbf{4.86} & 739 \\
     \texttt{tage\_uL}       & 8 KB  & 0.673 & \textbf{4.62} & 4.35 & 822 \\
     \texttt{gshareL}       & 8 KB  & 0.654 & 5.25 & 3.48 & \textbf{116} \\
-    \texttt{tage\_bimodeL}       & 8 KB  & 0.494 & 12.23 & 2.84 & 1038 \\
+    \texttt{tage\_bimodeL}       & 8 KB  & 0.551 & 6.39 & 2.90 & 918 \\
     \texttt{tage\_biasL}       & 8 KB  & 0.487 & 5.45 & 2.45 & 706 \\
     \hline \hline
     \multicolumn{6}{|l|}{\textit{Scalar predictors}} \\
@@ -246,7 +246,7 @@ Building upon the trade-off analysis of block-level TAGE predictors, we propose 
 
 \vspace{0.2cm}
 \textbf{TAGE bimode.} \\
-This variant replaces the simple bimodal base predictor ($t_0$) with a Bi-Mode predictor~\cite{lee1997bimode}, for increasing the accuracy of the base predictor. However, under strict memory budgets (8~KB and 16~KB), the choice table, taken PHT, and not-taken PHT consume a significant fraction of the storage. This severely limits the capacity of the TAGE tagged tables, forcing them to use short tags and fewer rows, causing the average MPKI to degrade to 9.74 (compared to 5.42 for \texttt{tageL}). Additionally it consumes also more energy than a bimodal base predictor.
+This variant replaces the simple bimodal base predictor ($t_0$) with a Bi-Mode predictor~\cite{lee1997bimode}, for increasing the accuracy of the base predictor. Under strict memory budgets (8~KB and 16~KB), the choice table, taken PHT, and not-taken PHT consume a significant fraction of the storage. This limits the capacity of the TAGE tagged tables, forcing them to use short tags and fewer rows, causing the average MPKI to degrade to 5.64 (at 16~KB) and 6.39 (at 8~KB) compared to 5.42 for \texttt{tageL}. It also incurs higher energy overhead.
 
 \vspace{0.2cm}
 \textbf{TAGE bias.} \\
@@ -284,7 +284,7 @@ The experimental results show that \texttt{tage\_satL} is highly competitive:
 \texttt{papL} & 0.646 & 0.327 & 0.657 & 1.032 & 0.720 & 0.432 & 0.615 & 0.707 & 0.538 & 0.480 & 0.600 & 0.581 & \textbf{0.611} \\
 \texttt{pagL} & 0.652 & 0.325 & 0.640 & 1.030 & 0.710 & 0.405 & 0.600 & 0.705 & 0.535 & 0.457 & 0.580 & 0.564 & \textbf{0.600} \\
 \texttt{lxorL} & 0.624 & 0.325 & 0.651 & 1.032 & 0.698 & 0.386 & 0.593 & 0.699 & 0.535 & 0.455 & 0.583 & 0.557 & \textbf{0.595} \\
-\texttt{tage\_bimodeL} & 0.575 & 0.239 & 0.565 & 1.005 & 0.573 & 0.343 & 0.459 & 0.505 & 0.357 & 0.309 & 0.527 & 0.476 & \textbf{0.494} \\
+\texttt{tage\_bimodeL} & 0.612 & 0.315 & 0.608 & 1.024 & 0.615 & 0.425 & 0.536 & 0.593 & 0.358 & 0.410 & 0.552 & 0.562 & \textbf{0.551} \\
 \texttt{tage\_biasL} & 0.621 & 0.319 & 0.482 & 1.026 & 0.464 & 0.351 & 0.425 & 0.599 & 0.361 & 0.339 & 0.445 & 0.409 & \textbf{0.487} \\
 \texttt{percepL\_16} & 0.417 & 0.164 & 0.436 & 0.775 & 0.411 & 0.305 & 0.367 & 0.393 & 0.275 & 0.287 & 0.344 & 0.333 & \textbf{0.376} \\
 \texttt{percepL\_4} & 0.344 & 0.245 & 0.362 & 0.466 & 0.393 & 0.303 & 0.350 & 0.362 & 0.365 & 0.309 & 0.334 & 0.370 & \textbf{0.350} \\
@@ -314,7 +314,7 @@ The experimental results show that \texttt{tage\_satL} is highly competitive:
 \texttt{lxorL} & 0.624 & 0.325 & 0.651 & 1.032 & 0.698 & 0.386 & 0.593 & 0.699 & 0.535 & 0.455 & 0.583 & 0.557 & \textbf{0.595} \\
 \texttt{pagL} & 0.663 & 0.325 & 0.619 & 1.029 & 0.612 & 0.370 & 0.590 & 0.618 & 0.538 & 0.395 & 0.528 & 0.518 & \textbf{0.567} \\
 \texttt{tage\_biasL} & 0.581 & 0.315 & 0.585 & 1.022 & 0.604 & 0.429 & 0.522 & 0.571 & 0.358 & 0.442 & 0.562 & 0.561 & \textbf{0.546} \\
-\texttt{tage\_bimodeL} & 0.539 & 0.190 & 0.526 & 0.994 & 0.560 & 0.328 & 0.437 & 0.498 & 0.304 & 0.303 & 0.508 & 0.465 & \textbf{0.471} \\
+\texttt{tage\_bimodeL} & 0.566 & 0.268 & 0.575 & 1.018 & 0.592 & 0.416 & 0.511 & 0.563 & 0.316 & 0.403 & 0.534 & 0.544 & \textbf{0.526} \\
 \texttt{percepL\_16} & 0.416 & 0.164 & 0.435 & 0.774 & 0.409 & 0.304 & 0.365 & 0.391 & 0.274 & 0.288 & 0.342 & 0.332 & \textbf{0.375} \\
 \texttt{percepL\_4} & 0.339 & 0.241 & 0.356 & 0.460 & 0.388 & 0.300 & 0.345 & 0.357 & 0.359 & 0.309 & 0.330 & 0.364 & \textbf{0.346} \\
     \hline
@@ -498,7 +498,7 @@ This section presents the performances of all the predictors, both block based (
     16KB & \texttt{lxorL} & \texttt{<12,5,4>} & 53,248 & 0.5948 & 8.31 & 3.2719 & 349.9 \\
     16KB & \texttt{pagL} & \texttt{<12,2,2,4>} & 131,120 & 0.5672 & 8.93 & 3.0710 & 240.8 \\
     16KB & \texttt{tage\_biasL} & \texttt{<9,16,64,4,16,64,3,4,6,true,0>} & 124,928 & 0.5461 & 5.25 & 2.8389 & 932.8 \\
-    16KB & \texttt{tage\_bimodeL} & \texttt{<8,8,64,4,16,64,3,4,6,true,9,9,8,true>} & 118,784 & 0.4710 & 9.74 & 2.5924 & 1587.4 \\
+    16KB & \texttt{tage\_bimodeL} & \texttt{<8,8,64,4,16,64,3,4,6,true,9,9,8,false>} & 116,736 & 0.5255 & 5.64 & 2.7612 & 1369.2 \\
     16KB & \texttt{perceptronL\_LI16} & \texttt{<8,3,8,83,4>} & 131,072 & 0.3746 & 6.91 & 1.7369 & 653.9 \\
     16KB & \texttt{perceptronL\_LI4} & \texttt{<9,7,8,83,2>} & 131,072 & 0.3457 & 5.52 & 1.5510 & 1119.2 \\
     \hline
@@ -512,7 +512,7 @@ This section presents the performances of all the predictors, both block based (
     8KB & \texttt{papL} & \texttt{<8,12,2,2,4>} & 65,536 & 0.6111 & 6.75 & 3.2641 & 243.9 \\
     8KB & \texttt{pagL} & \texttt{<10,11,2,4>} & 53,248 & 0.6002 & 7.47 & 3.2392 & 350.2 \\
     8KB & \texttt{lxorL} & \texttt{<12,5,4>} & 53,248 & 0.5948 & 8.31 & 3.2719 & 349.9 \\
-    8KB & \texttt{tage\_bimodeL} & \texttt{<7,8,64,4,16,64,3,4,6,true,8,8,8,true>} & 60,416 & 0.4944 & 12.23 & 2.8366 & 1037.5 \\
+    8KB & \texttt{tage\_bimodeL} & \texttt{<7,8,64,4,16,64,3,4,6,true,8,8,8,false>} & 58,368 & 0.5508 & 6.39 & 2.8950 & 918.2 \\
     8KB & \texttt{tage\_biasL} & \texttt{<8,8,64,4,16,64,3,4,6,true,0>} & 57,344 & 0.4867 & 5.45 & 2.4500 & 706.4 \\
     8KB & \texttt{perceptronL\_LI16} & \texttt{<7,3,8,83,4>} & 65,536 & 0.3756 & 6.99 & 1.7378 & 543.2 \\
     8KB & \texttt{perceptronL\_LI4} & \texttt{<8,7,8,83,2>} & 65,536 & 0.3502 & 5.67 & 1.5506 & 562.5 \\

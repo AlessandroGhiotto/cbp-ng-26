@@ -255,12 +255,15 @@ def get_predictor_size_bits(expr: str) -> int:
         bias_b = params[8] if len(params) > 8 else 6
         choice_b = params[10] if len(params) > 10 else 10
         pht_b = params[11] if len(params) > 11 else 10
+        use_bias = params[13] if len(params) > 13 else True
+        if isinstance(use_bias, str):
+            use_bias = use_bias.lower() == "true"
         li = 1 << line_b
         
         choice_size = (1 << choice_b) * ctr_b * li
         pht_size = 2 * (1 << pht_b) * ctr_b * li
         tage_size = 3 * (1 << pc_b) * ((ctr_b * li) + tag_b)
-        bias_size = (1 << bias_b) * 2 * li
+        bias_size = ((1 << bias_b) * 2 * li) if use_bias else 0
         return choice_size + pht_size + tage_size + bias_size
     else:
         raise ValueError(f"Unknown predictor name: {name}")
